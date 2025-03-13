@@ -1,0 +1,29 @@
+{
+  "name": "easyservice-backend",
+  "version": "1.0.0",
+  "description": "L'entreprise souhaite mettre en place une solution de gestion des services permettant d'organiser et de gérer efficacement tous les aspects liés aux prestations de services, telles que la planification, la facturation et le suivi des clients.  L'application doit pouvoir bénéficier d’un éco système modulaire et des capacités d'intégration.",
+  "homepage": "https://github.com/Fatmata-Dev/EasyService-backend#readme",
+  "bugs": {
+    "url": "https://github.com/Fatmata-Dev/EasyService-backend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fatmata-Dev/EasyService-backend.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.12.1"
+  }
+}
