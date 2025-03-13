@@ -9,11 +9,11 @@ const categorieSchema = new mongoose.Schema({
   },
   dateCreation: {
     type: Date,
-    default: Date.now,  // La date de création est définie automatiquement sur la date actuelle
+    default: Date.now,  
   },
 });
 
-// Le nom du modèle doit commencer par une majuscule par convention
+
 const Categorie = mongoose.model("Categorie", categorieSchema);
 
 module.exports = Categorie;
