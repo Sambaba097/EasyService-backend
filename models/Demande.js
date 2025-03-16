@@ -1,4 +1,5 @@
-const mongoose = require("mongoose");
+const mongoose = require("mongoose"); 
+
 const SchemaDemande = new mongoose.Schema({
     titre: {
         type: String,
@@ -21,6 +22,16 @@ const SchemaDemande = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Service",
         required: true
+    },
+    client: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Utilisateur",
+        required: true
+    },
+    technicien: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Utilisateur",
+        default: null
     }
 });
 

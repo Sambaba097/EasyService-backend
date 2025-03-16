@@ -3,6 +3,7 @@ const app = express();
 const mongoose =require('mongoose');
 const factureRoutes = require("./routes/factureRoutes");
 const demandeRoutes = require("./routes/demandeRoutes");
+const avisRoutes =require("./routes/avisRoutes")
 const MONGODB_URI="mongodb+srv://Fatima:easyservice@cluster0.6xoab.mongodb.net/EasyService?retryWrites=true&w=majority&appName=Cluster";
 
 app.use(express.json());
@@ -15,6 +16,7 @@ mongoose.connect(MONGODB_URI).then(()=> {
 
 app.use("/api/demandes", demandeRoutes);
 app.use("/api/factures",factureRoutes)
+app.use("/api/avis",avisRoutes)
 
 app.listen(5000,()=>{
     console.log('serveur sur http://localhost:5000');

@@ -3,8 +3,18 @@ const Demande = require("../models/Demande");
 // Creation d'une nouvelle demande
 exports.creerDemande = async (req, res) => {
     try {
-        const { titre, statut, dateIntervention, service } = req.body;
-        const nouvelleDemande = new Demande({ titre, statut, dateIntervention, service });
+        const { titre, service } = req.body;
+        const client = req.user.id; 
+
+        if (req.user.role !== "client") {
+            return res.status(403).json({ message: "La creation d'une demande est specifique a un client" });
+        }
+        const nouvelleDemande = new Demande({
+            titre,
+            service,
+            client,
+            statut: "en_attente"
+        });
         const demandeEnregistree = await nouvelleDemande.save();
 
         res.status(201).json(demandeEnregistree);
@@ -12,6 +22,7 @@ exports.creerDemande = async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 };
+
 //Reccuperation d'une demande
 exports.getDemandeById = async (req, res) => {
     try {
