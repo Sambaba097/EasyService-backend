@@ -70,9 +70,30 @@ exports.login = async (req, res) => {
 
         user: {
             email: user.email,
-            prenom: user.prenom
+            prenom: user.prenom,
+            role: user.role,
         }
      });
+
+     // Redirection en fonction du rôle
+    const redirectUrl = '';
+    switch (user.role) {
+      case 'technicien':
+        redirectUrl = '/dashboard/technicien';
+        break;
+      case 'client':
+        redirectUrl = '/dashboard/client';
+        break;
+      case 'admin':
+        redirectUrl = '/dashboard/admin';
+        break;
+      default:
+        return res.status(400).json({ message: 'Rôle non reconnu' });
+    }
+
+    // Renvoyer le token et l'URL de redirection
+    res.status(200).json({ message: 'Connexion réussie!', token, redirectUrl });
+
   } catch (err) {
     res.status(500).json({ message: 'Erreur lors de la connexion.' });
   }

@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const PORT = process.env.PORT || 3000;
 require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 
 
@@ -27,6 +28,9 @@ app.get('/', (req, res) => {
 
 // Routes d'authentification
 app.use('/api/auth', authRoutes);
+
+// Routes des dashboards
+app.use('/dashboard', dashboardRoutes);
 
 // Démarrer le serveur
 
