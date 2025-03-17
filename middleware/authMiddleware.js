@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 
+// Middleware pour vérifier la présence du token et décoder l'utilisateur
 exports.authenticate = (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
 
@@ -9,16 +10,20 @@ exports.authenticate = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = decoded; // Ajoute l'utilisateur décodé à la requête
 
-    // Vérifier le rôle de l'utilisateur
-    const allowedRoles = ['technicien', 'client', 'admin'];
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Accès refusé. Rôle non autorisé.' });
-    }
-
-    next();
+    next();  // Passe au middleware suivant
   } catch (err) {
     res.status(400).json({ message: 'Token invalide.' });
   }
+};
+
+// Middleware pour vérifier les rôles
+exports.roleMiddleware = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ message: "Accès refusé. Rôle non autorisé." });
+    }
+    next(); // L'utilisateur a le bon rôle, on continue la route
+  };
 };

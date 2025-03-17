@@ -1,4 +1,5 @@
-const User = require("./Users"); 
+const mongoose = require("mongoose");
+const User = require("./User"); 
 
 const planificationSchema = new mongoose.Schema({
     datePlanifiee: { type: Date, required: true },

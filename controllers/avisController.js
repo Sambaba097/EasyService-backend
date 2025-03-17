@@ -44,3 +44,24 @@ exports.getAvisById = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
+exports.deleteAvis = async (req, res) => {
+    try {
+      const avis = await Avis.findById(req.params.id);
+  
+      if (!avis) {
+        return res.status(404).json({ message: "Avis non trouvé" });
+      }
+  
+      // Vérifier si l'utilisateur est l'auteur de l'avis ou un admin
+      if (avis.utilisateur.toString() !== req.user.id && req.user.role !== "admin") {
+        return res.status(403).json({ message: "Accès refusé. Vous ne pouvez supprimer que vos propres avis." });
+      }
+  
+      await avis.deleteOne();
+      res.json({ message: "Avis supprimé avec succès" });
+  
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  };

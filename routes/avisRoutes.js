@@ -1,13 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const avisController = require("../controllers/avisController");
-const { authMiddleware } = require("../middlewares/authMiddleware");
+const { authenticate, roleMiddleware } = require("../middleware/authMiddleware"); // Importation du middleware des rôles
 
-// Routes avec verification de l'utilisateur connecte
-router.post("/", authMiddleware, avisController.creerAvis); // Uniquement pour les clients
-//router.delete("/:id", authMiddleware, avisController.deleteAvis); // Suppression propre avis
+// Routes avec vérification de l'utilisateur connecté et des rôles
+router.post("/", authenticate, roleMiddleware(["client"]), avisController.creerAvis); // Uniquement pour les clients
+router.delete("/:id", authenticate, roleMiddleware(["client", "admin"]), avisController.deleteAvis);
 
-// Routes accessible a tous
+// Routes accessibles à tous
 router.get("/", avisController.getAllAvis);
 router.get("/:id", avisController.getAvisById);
 

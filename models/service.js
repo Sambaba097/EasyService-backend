@@ -5,8 +5,8 @@ const ServiceSchema = new mongoose.Schema({
   description: { type: String, required: true, trim: true },
   tarif: { type: Number, required: true },
   duree: { type: Number, required: true },
-  uniteDuree: { type: String, required: true, enum: ["jours", "heures", "minutes"] }, // Ajout du champ manquant
-  categorie: { type: mongoose.Schema.Types.ObjectId, ref: "Categorie", required: true }, // Doit être un ID
+  uniteDuree: { type: String, required: true, enum: ["jours", "heures", "minutes"] },
+  categorie: { type: mongoose.Schema.Types.ObjectId, ref: "Categorie", required: true }, 
   image: { type: String }
 });
 

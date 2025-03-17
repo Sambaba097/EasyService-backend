@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require("../middleware/authMiddleware");  
-const { creerFacture, recupererFactures } = require('../controllers/factureController');
+const { creerFacture, recupererFactures, recupererFactureById } = require('../controllers/factureController');
 
 router.post('/', authenticate, creerFacture);
 router.get('/', authenticate, recupererFactures);

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const SchemaAvis = new mongoose.Schema({
     note:{
-        type:number,
+        type:Number,
         required:true,
         min: 1,
         max: 5
@@ -17,7 +17,7 @@ const SchemaAvis = new mongoose.Schema({
     },
     client:{
         type:mongoose.Schema.Types.ObjectId,
-        ref: "Utilisateur",
+        ref: "User",
         required: true
     }
 })
