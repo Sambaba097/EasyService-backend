@@ -7,14 +7,13 @@ router.post("/", async (req, res) => {
     try {
         const { datePlanifiee, technicienAssigne, demande } = req.body;
 
-        // Créer une nouvelle planification
-        const planification = new Planification({
-            datePlanifiee,
-            technicienAssigne,
-            demande,
-        });
+        // Vérifier que l'utilisateur est bien un technicien
+        const technicien = await User.findOne({ _id: technicienAssigne, role: "technicien" });
+        if (!technicien) {
+            return res.status(400).json({ message: "L'utilisateur assigné n'est pas un technicien valide." });
+        }
 
-        // Sauvegarder la planification dans la base de données
+        const planification = new Planification({ datePlanifiee, technicienAssigne, demande });
         await planification.save();
         res.status(201).json(planification);
     } catch (error) {
@@ -22,6 +21,7 @@ router.post("/", async (req, res) => {
         res.status(500).json({ message: "Erreur lors de la création de la planification", error });
     }
 });
+
 
 // Obtenir toutes les planifications
 router.get("/", async (req, res) => {
@@ -39,9 +39,14 @@ router.get("/", async (req, res) => {
 // Obtenir une planification par son ID
 router.get("/:id", async (req, res) => {
     try {
-        const planification = await Planification.findById(req.params.id)
-            .populate("technicienAssigne")  // Peupler les informations sur le technicien
-            .populate("demande");           // Peupler les informations sur la demande
+        const planifications = await Planification.find()
+    .populate({
+        path: "technicienAssigne",
+        match: { role: "technicien" }, // Vérifier que c'est un technicien
+        select: "nom prenom email"
+    })
+    .populate("demande");
+
         if (!planification) {
             return res.status(404).json({ message: "Planification non trouvée" });
         }
@@ -57,15 +62,16 @@ router.put("/:id", async (req, res) => {
     try {
         const { datePlanifiee, technicienAssigne, demande } = req.body;
 
-        // Mettre à jour la planification
+        // Vérifier que le technicien est valide
+        const technicien = await User.findOne({ _id: technicienAssigne, role: "technicien" });
+        if (!technicien) {
+            return res.status(400).json({ message: "L'utilisateur assigné n'est pas un technicien valide." });
+        }
+
         const planification = await Planification.findByIdAndUpdate(
             req.params.id,
-            {
-                datePlanifiee,
-                technicienAssigne,
-                demande,
-            },
-            { new: true } // Renvoie la planification mise à jour
+            { datePlanifiee, technicienAssigne, demande },
+            { new: true }
         );
 
         if (!planification) {
@@ -78,6 +84,7 @@ router.put("/:id", async (req, res) => {
         res.status(500).json({ message: "Erreur lors de la mise à jour de la planification", error });
     }
 });
+
 
 // Supprimer une planification par son ID
 router.delete("/:id", async (req, res) => {
