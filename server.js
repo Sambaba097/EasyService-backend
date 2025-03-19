@@ -55,6 +55,11 @@ app.use((err, req, res, next) => {
     });
 });
 
+// Route de base pour tester l'API
+app.get("/", (req, res) => {
+    res.send("Bienvenue sur l'API de gestion de service!");
+});
+
 // Lancer le serveur sur le port 5000
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
