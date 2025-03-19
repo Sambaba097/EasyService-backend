@@ -14,10 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 // Connexion à MongoDB
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://Fatima:easyservice@cluster0.6xoab.mongodb.net/EasyService?retryWrites=true&w=majority&appName=Cluster";
 
-mongoose.connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
+mongoose.connect(MONGO_URI)
     .then(() => console.log("✅ Connecté à MongoDB Atlas"))
     .catch(err => {
         console.log("🔴 Erreur de connexion à MongoDB:", err);
@@ -59,7 +56,7 @@ app.use((err, req, res, next) => {
 });
 
 // Lancer le serveur sur le port 5000
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
     console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`);
 });
