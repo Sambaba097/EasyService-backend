@@ -7,7 +7,11 @@ require("dotenv").config();
 const app = express();
 
 // Utilisation de CORS et express.json() pour gérer les requêtes
-app.use(cors());
+app.use(cors({
+    origin: "*", // Autorise les requêtes de n'importe quel domaine
+    credentials: true,
+    allowedHeaders: ["Origin", "Content-Type", "Authorization"]
+}));
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true })); 
 
