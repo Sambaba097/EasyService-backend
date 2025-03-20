@@ -8,7 +8,7 @@ const app = express();
 
 // Utilisation de CORS et express.json() pour gérer les requêtes
 app.use(cors({
-    origin: "*", // Autorise les requêtes de n'importe quel domaine
+    origin: "https://easyservice-29e5.onrender.com/", // Autorise les requêtes depuis le frontend
     credentials: true,
     allowedHeaders: ["Origin", "Content-Type", "Authorization"]
 }));
