@@ -65,18 +65,8 @@ exports.login = async (req, res) => {
 
     // Générer un token JWT
     const token = jwt.sign({ userId: user._id, role: user.role, email: user.email, prenom: user.prenom }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    // Renvoyer également les informations de l'utilisateur
-    res.status(200).json({message: 'Connexion reussi!', token, 
-
-        user: {
-            email: user.email,
-            prenom: user.prenom,
-            role: user.role,
-        }
-     });
-
-     // Redirection en fonction du rôle
-    const redirectUrl = '';
+    // Redirection en fonction du rôle
+    let redirectUrl = '';
     switch (user.role) {
       case 'technicien':
         redirectUrl = '/dashboard/technicien';
@@ -90,11 +80,18 @@ exports.login = async (req, res) => {
       default:
         return res.status(400).json({ message: 'Rôle non reconnu' });
     }
-
-    // Renvoyer le token et l'URL de redirection
-    res.status(200).json({ message: 'Connexion réussie!', token, redirectUrl });
-
+    // Renvoyer également les informations de l'utilisateur
+    res.status(200).json({message: 'Connexion reussi!',
+       token,
+       redirectUrl, 
+        user: {
+            email: user.email,
+            prenom: user.prenom,
+            role: user.role,
+        }
+     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur lors de la connexion.' });
+    console.error('Erreur lors de la connexion :', err); // Log l'erreur
+    res.status(500).json({ message: 'Erreur lors de la connexion.', error: err.message  });
   }
 };
