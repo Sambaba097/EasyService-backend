@@ -7,11 +7,26 @@ require("dotenv").config();
 const app = express();
 
 // Utilisation de CORS et express.json() pour gérer les requêtes
-app.use(cors({
-    origin: "https://easyservice-29e5.onrender.com/", // Autorise les requêtes depuis le frontend
+const corsOptions = {
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "https://easyservice-29e5.onrender.com",
+    ],
     credentials: true,
-    allowedHeaders: ["Origin", "Content-Type", "Authorization"]
-}));
+    allowedHeaders: [
+      "Origin",
+      "X-Requested-With",
+      "Content-Type",
+      "Accept",
+      "Authorization",
+      "sessionId",
+    ],
+    exposedHeaders: ["sessionId"],
+    methods: "GET,PUT,POST,DELETE",
+    preflightContinue: false,
+  };
+app.use(cors(corsOptions));
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true })); 
 
