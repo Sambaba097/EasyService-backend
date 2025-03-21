@@ -97,3 +97,17 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: 'Erreur lors de la connexion.', error: err.message  });
   }
 };
+
+// Récupérer tous les utilisateurs
+exports.getAllUsers = async (req, res) => {
+  try {
+    // Récupérer tous les utilisateurs depuis la base de données
+    const users = await User.find({});
+
+    // Renvoyer la liste des utilisateurs
+    res.status(200).json({ message: 'Liste des utilisateurs récupérée avec succès', users });
+  } catch (err) {
+    console.error('Erreur lors de la récupération des utilisateurs :', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération des utilisateurs.', error: err.message });
+  }
+};
