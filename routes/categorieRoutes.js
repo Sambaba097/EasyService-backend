@@ -3,7 +3,7 @@ const Categorie = require("../models/categorie");
 const router = express.Router();
 
 // Créer une nouvelle catégorie
-router.post("/", async (req, res) => {
+router.post("/ajouter/categorie", async (req, res) => {
     try {
         const { nom } = req.body;
 
@@ -24,7 +24,7 @@ router.post("/", async (req, res) => {
 });
 
 // Obtenir toutes les catégories
-router.get("/", async (req, res) => {
+router.get("/afficher/categorie", async (req, res) => {
     try {
         const categories = await Categorie.find();
         res.status(200).json(categories);
@@ -35,7 +35,7 @@ router.get("/", async (req, res) => {
 });
 
 // Obtenir une catégorie par son ID
-router.get("/:id", async (req, res) => {
+router.get("afficherCategorie/:id", async (req, res) => {
     try {
         const categorie = await Categorie.findById(req.params.id);
         if (!categorie) {

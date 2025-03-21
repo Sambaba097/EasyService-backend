@@ -3,7 +3,7 @@ const Service = require("../models/service");
 const router = express.Router();
 
 // Créer un nouveau service
-router.post("/", async (req, res) => {
+router.post("/ajouter/service", async (req, res) => {
     try {
         const { nom, description, tarif, duree, uniteDuree, categorie, image } = req.body;
 
@@ -28,7 +28,7 @@ router.post("/", async (req, res) => {
 });
 
 // Obtenir tous les services
-router.get("/", async (req, res) => {
+router.get("/afficher/service", async (req, res) => {
     try {
         const services = await Service.find().populate("categorie");
         res.status(200).json(services);
