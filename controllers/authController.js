@@ -64,7 +64,7 @@ exports.login = async (req, res) => {
     }
 
     // Générer un token JWT
-    const token = jwt.sign({ userId: user._id, role: user.role, email: user.email, prenom: user.prenom }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user._id, role: user.role, email: user.email, prenom: user.prenom, nom: user.nom }, process.env.JWT_SECRET, { expiresIn: '1h' });
     // Redirection en fonction du rôle
     let redirectUrl = '';
     switch (user.role) {
@@ -85,8 +85,10 @@ exports.login = async (req, res) => {
        token,
        redirectUrl, 
         user: {
+
             email: user.email,
             prenom: user.prenom,
+            nom: user.nom,
             role: user.role,
         }
      });
