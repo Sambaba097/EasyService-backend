@@ -6,7 +6,7 @@ exports.createService = async (req, res) => {
         const { nom, description, tarif, duree, uniteDuree, categorie, image } = req.body;
         const service = new Service({ nom, description, tarif, duree, uniteDuree, categorie, image });
         await service.save();
-        res.status(201).json(service);
+        res.status(201).json({message: 'Bravo, service ajoutée avec succé', service});
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Erreur lors de la création du service", error });
