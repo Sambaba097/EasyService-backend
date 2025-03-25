@@ -7,7 +7,9 @@ const ServiceSchema = new mongoose.Schema({
   duree: { type: Number, required: true },
   uniteDuree: { type: String, required: true, enum: ["jours", "heures", "minutes"] },
   categorie: { type: mongoose.Schema.Types.ObjectId, ref: "Categorie", required: true }, 
-  image: { type: String }
+  image: { type: String, required: true },
+  createDate: { type: Date, default: Date.now },
+  admin: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }
 });
 
 module.exports = mongoose.model("Service", ServiceSchema);

@@ -85,7 +85,7 @@ exports.login = async (req, res) => {
        token,
        redirectUrl, 
         user: {
-
+            id: user._id,
             email: user.email,
             prenom: user.prenom,
             nom: user.nom,
