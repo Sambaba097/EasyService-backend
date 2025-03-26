@@ -31,7 +31,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true })); 
 
 // Connexion à MongoDB
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://Fatima:easyservice@cluster0.6xoab.mongodb.net/EasyService?retryWrites=true&w=majority&appName=Cluster";
+const MONGO_URI = process.env.MONGO_URI 
 
 mongoose.connect(MONGO_URI)
     .then(() => console.log("✅ Connecté à MongoDB Atlas"))
