@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const mongoose = require("mongoose");
+
 
 // Inscription
 exports.register = async (req, res) => {
@@ -111,3 +113,27 @@ exports.getAllUsers = async (req, res) => {
     res.status(500).json({ message: 'Erreur lors de la récupération des utilisateurs.', error: err.message });
   }
 };
+
+
+exports.getUser = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "ID utilisateur invalide" });
+    }
+
+    const user = await User.findById(req.params.id).select("-password"); // Exclut le mot de passe
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    res.status(200).json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      message: "Erreur lors de la récupération de l'utilisateur",
+      error: err.message,
+    });
+  }
+};
+
