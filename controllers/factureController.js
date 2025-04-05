@@ -1,68 +1,141 @@
+// factureController.js
+
 const Facture = require('../models/Facture');
-//const PDFDocument = require("pdfkit");
+//const User = require('../models/User'); // Pour récupérer les informations des utilisateurs (admin, technicien, client)
 
-// Création d'une facture reliee avec un client, technicien et service
-const creerFacture = async (req, res) => {
-  try {
-    const { montant, service, technicien, client } = req.body;
+/** exports.createFacture = async (req, res) => {
+    try {
+        const { montant, service, technicien, client } = req.body;
+        const adminId = req.user._id;
 
-    // Vérification que toutes les infos nécessaires sont présentes
-    if (!montant || !service || !technicien || !client) {
-      return res.status(400).json({ message: "Tous les champs sont requis (montant, service, technicien, client)" });
+        const nouvelleFacture = new Facture({
+            montant,
+            service,
+            technicien,
+            client,
+            admin: adminId
+        });
+
+        await nouvelleFacture.save();
+
+        return res.status(201).json({
+            message: "Facture créée avec succès",
+            facture: nouvelleFacture
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: "Erreur lors de la création de la facture",
+            error: error.message
+        });
     }
+};
+**/
 
-    const nouvelleFacture = new Facture({
-      montant,
-      service,
-      technicien,
-      client
-    });
+exports.createFacture = async (req, res) => {
+    try {
+      // Vérification de l'ID client
+      if (!mongoose.Types.ObjectId.isValid(req.body.client)) {
+        return res.status(400).json({ message: "ID du client invalide." });
+      }
+  
+      // Vérification du numéro de facture
+      if (!req.body.numeroFacture) {
+        return res.status(400).json({ message: "Le numéro de facture est obligatoire." });
+      }
+  
+      const newFacture = new Facture(req.body);
+      await newFacture.save();
+  
+      res.status(201).json({ message: "Facture créée avec succès", facture: newFacture });
+    } catch (error) {
+      res.status(500).json({ message: "Erreur serveur", error });
+    }
+  };
 
-    await nouvelleFacture.save();
-    res.status(201).json({ message: 'Facture créée avec succès', facture: nouvelleFacture });
+  
+exports.afficherFacture = async (req, res) => {
+    try {
+        const facture = await Facture.findById(req.params.id)
+            .populate('admin', 'nom email')
+            .populate('technicien', 'nom')
+            .populate('client', 'nom');
 
-  } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de la création de la facture', error });
-  }
+        if (!facture) {
+            return res.status(404).json({ message: "Facture non trouvée" });
+        }
+
+        return res.status(200).json(facture);
+    } catch (error) {
+        return res.status(500).json({
+            message: "Erreur lors de la récupération de la facture",
+            error: error.message
+        });
+    }
 };
 
-// Récupération de toutes les factures avec les détails du client, technicien et service
-const recupererFactures = async (req, res) => {
-  try {
-    let query = {};
-    if (req.user.role !== "admin") {
-      query.client = req.user.id; // Si ce n'est pas un admin, l'utiliateur ne voit que ses propres factures
+exports.afficherToutesLesFactures = async (req, res) => {
+    try {
+        const factures = await Facture.find()
+            .populate('admin', 'nom email')
+            .populate('technicien', 'nom')
+            .populate('client', 'nom');
+
+        if (factures.length === 0) {
+            return res.status(404).json({ message: "Aucune facture trouvée" });
+        }
+
+        return res.status(200).json(factures);
+    } catch (error) {
+        return res.status(500).json({
+            message: "Erreur lors de la récupération des factures",
+            error: error.message
+        });
     }
-
-    const factures = await Facture.find(query)
-      .populate("client", "nom email")
-      .populate("technicien", "nom email")
-      .populate("service", "nom");
-
-    res.status(200).json(factures);
-  } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la récupération des factures", error });
-  }
 };
 
+exports.mettreAJourFacture = async (req, res) => {
+    try {
+        const factureId = req.params.id;
+        const { montant, service, technicien, client } = req.body;
 
-// Récupération d'une seule facture par expl : techargement pour le client 
-const recupererFactureById = async (req, res) => {
-  try {
-    const facture = await Facture.findById(req.params.id)
-      .populate("client", "nom email")
-      .populate("technicien", "nom email")
-      .populate("service", "nom");
+        const factureMiseAJour = await Facture.findByIdAndUpdate(factureId, {
+            montant,
+            service,
+            technicien,
+            client
+        }, { new: true });
 
-    if (!facture) {
-      return res.status(404).json({ message: "Facture non trouvée" });
+        if (!factureMiseAJour) {
+            return res.status(404).json({ message: "Facture non trouvée" });
+        }
+
+        return res.status(200).json({
+            message: "Facture mise à jour avec succès",
+            facture: factureMiseAJour
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: "Erreur lors de la mise à jour de la facture",
+            error: error.message
+        });
     }
-
-    res.status(200).json(facture);
-
-  } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de la récupération de la facture', error });
-  }
 };
 
-module.exports = { creerFacture, recupererFactures, recupererFactureById };
+exports.supprimerFacture = async (req, res) => {
+    try {
+        const factureId = req.params.id;
+
+        const factureSupprimee = await Facture.findByIdAndDelete(factureId);
+
+        if (!factureSupprimee) {
+            return res.status(404).json({ message: "Facture non trouvée" });
+        }
+
+        return res.status(200).json({ message: "Facture supprimée avec succès" });
+    } catch (error) {
+        return res.status(500).json({
+            message: "Erreur lors de la suppression de la facture",
+            error: error.message
+        });
+    }
+};

@@ -9,7 +9,10 @@ const ServiceSchema = new mongoose.Schema({
   categorie: { type: mongoose.Schema.Types.ObjectId, ref: "Categorie", required: true }, 
   image: { type: String, required: true },
   createDate: { type: Date, default: Date.now },
-  admin: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }
+  admin: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  odooId: {
+    type: Number // l'ID entier d'Odoo
+  }
 });
 
 module.exports = mongoose.model("Service", ServiceSchema);
