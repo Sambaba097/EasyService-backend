@@ -2,8 +2,7 @@ const mongoose = require('mongoose');
 const axios = require('axios');
 const NumeroFacture = require('./numeroFacture');
 const Service = require('./service');
-const User = require('./User'); // Assurez-vous que le modèle User est bien importé
-
+const User = require('./User');
 require('dotenv').config();
 
 const SchemaFacture = new mongoose.Schema({
@@ -41,11 +40,15 @@ const SchemaFacture = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true
+    },
+    odooInvoiceId: {
+        type: Number
     }
 });
 
 SchemaFacture.pre('save', async function (next) {
     try {
+        // Génération du numéro de facture
         if (this.isNew) {
             const numero = await NumeroFacture.findOneAndUpdate(
                 {},
@@ -55,36 +58,26 @@ SchemaFacture.pre('save', async function (next) {
             this.numeroFacture = `FAC-${String(numero.dernierNumero).padStart(3, '0')}`;
         }
 
+        // Récupération des objets liés
         await this.populate('client technicien admin service');
 
-        // Log des IDs Odoo
-        console.log("👉 odooIds :", {
-            clientId: this.client.odooId,
-            technicienId: this.technicien.odooId,
-            adminId: this.admin.odooId,
-            serviceId: this.service.odooId
-        });
+        const { client, technicien, admin, service } = this;
 
-        const clientId = this.client.odooId;
-        const technicienId = this.technicien.odooId;
-        const adminId = this.admin.odooId;
-        const serviceId = this.service.odooId;
+        // Vérification des odooId
+        const idsOdoo = {
+            clientId: client.odooId,
+            technicienId: technicien.odooId,
+            adminId: admin.odooId,
+            serviceId: service.odooId
+        };
 
-        if (!clientId || !technicienId || !adminId || !serviceId) {
-            console.warn('⚠️ Un ou plusieurs odooId sont manquants. Facture non envoyée à Odoo.');
+        console.log("👉 odooIds :", idsOdoo);
+
+        if (!idsOdoo.clientId || !idsOdoo.technicienId || !idsOdoo.adminId || !idsOdoo.serviceId) {
             return next(new Error('Un ou plusieurs odooId sont manquants.'));
         }
 
-        // Vérification si les IDs sont valides
-        const usersWithOdooId = await User.find({
-            odooId: { $in: [clientId, technicienId, adminId] }
-        });
-
-        if (usersWithOdooId.length !== 3) {
-            console.warn('⚠️ Certains utilisateurs n\'ont pas un odooId valide.');
-            return next(new Error('Tous les utilisateurs ne possèdent pas un odooId valide.'));
-        }
-
+        // Connexion à Odoo
         const loginResponse = await axios.post(`${process.env.ODOO_URL}/jsonrpc`, {
             jsonrpc: '2.0',
             method: 'call',
@@ -97,6 +90,30 @@ SchemaFacture.pre('save', async function (next) {
         });
 
         const uid = loginResponse.data.result;
+        if (!uid) {
+            throw new Error("Échec de l'authentification avec Odoo.");
+        }
+
+        console.log("🔐 Authentifié sur Odoo avec l'UID :", uid);
+
+        // Création de la facture dans Odoo
+        const factureOdooPayload = {
+            move_type: 'out_invoice',
+            partner_id: idsOdoo.clientId,
+            invoice_date: this.dateEmission,
+            x_technicien_id: idsOdoo.technicienId,
+            invoice_user_id: idsOdoo.adminId,
+            x_service_id: idsOdoo.serviceId,
+            ref: this.numeroFacture,
+            invoice_line_ids: [
+                [0, 0, {
+                    name: service.nom || "Service",
+                    quantity: 1,
+                    price_unit: this.montant,
+                    account_id: 1665 // Remplacer par l'ID réel de ton compte de vente dans Odoo
+                }]
+            ]
+        };
 
         const odooResponse = await axios.post(`${process.env.ODOO_URL}/jsonrpc`, {
             jsonrpc: '2.0',
@@ -110,36 +127,29 @@ SchemaFacture.pre('save', async function (next) {
                     process.env.ODOO_PASS,
                     'account.move',
                     'create',
-                    [{
-                        move_type: 'out_invoice',
-                        partner_id: clientId,
-                        invoice_date: this.dateEmission,
-                        invoice_user_id: technicienId,
-                        user_id: adminId,
-                        x_service_id: serviceId,
-                        ref: this.numeroFacture
-                    }]
+                    [factureOdooPayload]
                 ]
             },
             id: 2
         });
+        console.log("📩 Réponse complète de Odoo :", JSON.stringify(odooResponse.data, null, 2));
 
-        console.log("🧾 Réponse brute Odoo :", odooResponse.data);
-        console.log('✅ Facture créée dans Odoo avec ID :', odooResponse.data.result);
+        this.odooInvoiceId = odooResponse.data.result;
+
+        console.log('✅ Facture créée dans Odoo avec ID :', this.odooInvoiceId);
         next();
 
     } catch (error) {
-        console.error('❌ Erreur Odoo lors de la création de facture :', error.response?.data || error.message);
+        console.error('❌ Erreur lors de la création de la facture Odoo :', error.response?.data || error.message);
         next(error);
     }
 });
 
-
 module.exports = mongoose.model("Facture", SchemaFacture);
 
-
-// Exemple de création de facture
+// Exemple de création de facture (à exécuter ailleurs dans ton app)
 const Facture = require('./Facture');
+
 const nouvelleFacture = new Facture({
     montant: 5000,
     service: "67e33e1c01c1370b76fcd839",
@@ -149,5 +159,5 @@ const nouvelleFacture = new Facture({
 });
 
 nouvelleFacture.save()
-    .then(() => console.log("Facture enregistrée avec succès"))
-    .catch((err) => console.error("Erreur lors de la sauvegarde de la facture :", err));
+    .then(() => console.log("📄 Facture enregistrée avec succès"))
+    .catch((err) => console.error("💥 Erreur lors de l'enregistrement :", err.message));
