@@ -10,8 +10,15 @@ exports.authenticate = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // Ajoute l'utilisateur décodé à la requête
+   // req.user = decoded; // Ajoute l'utilisateur décodé à la requête
 
+    req.user = {
+      id: decoded.userId,
+      role: decoded.role,
+      email: decoded.email,
+      nom: decoded.nom,
+      prenom: decoded.prenom
+    };
     next();  // Passe au middleware suivant
   } catch (err) {
     res.status(400).json({ message: 'Token invalide.' });
