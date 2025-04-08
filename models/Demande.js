@@ -7,7 +7,8 @@ const SchemaDemande = new mongoose.Schema({
         unique: true
     },
     categorieService: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Categorie",
         required: true
     },
     service: {
