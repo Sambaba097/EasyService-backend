@@ -1,5 +1,8 @@
 const Demande = require("../models/Demande");
 const Service = require("../models/service");
+const User = require('../models/User');
+const Compteur = require("../models/Compteur"); 
+
 // Création d'une nouvelle demande
 exports.createDemande = async (req, res) => {
   try {
@@ -9,10 +12,11 @@ exports.createDemande = async (req, res) => {
       tarif,         // Tarif côté front
       duree,
       uniteDuree,
-      technicien     // Peut être null
+      technicien,    // Peut être null
+      dateIntervention
     } = req.body;
 
-    const client = req.user.id; // l'utilisateur connecté
+    const client = req.user.id;
 
     // Vérification du rôle
     if (req.user.role !== "client") {
@@ -24,38 +28,48 @@ exports.createDemande = async (req, res) => {
       return res.status(400).json({ message: "Tous les champs requis doivent être fournis." });
     }
 
-    // Vérification que le service existe
+    // Vérification du service
     const serviceExist = await Service.findById(service);
     if (!serviceExist) {
       return res.status(404).json({ message: "Service non trouvé." });
     }
 
-    // Vérification de l'unité
+    // Vérification de l’unité de durée
     if (uniteDuree.trim().toLowerCase() !== serviceExist.uniteDuree.trim().toLowerCase()) {
       return res.status(400).json({ message: "L'unité de durée ne correspond pas à celle du service." });
     }
-    
 
-    // Création de la demande
+    // 🔢 Générer le numéro auto-incrémenté
+    const compteur = await Compteur.findOneAndUpdate(
+      { nom: "demande" },
+      { $inc: { valeur: 1 } },
+      { new: true, upsert: true }
+    );
+
+    const numeroAuto = `DMD-${String(compteur.valeur).padStart(4, "0")}`; // exemple : DMD-0001
+
+    // ✅ Création de la demande
     const nouvelleDemande = new Demande({
+      numeroDemande: numeroAuto,
       service,
-      description,
-      tarif,
+      categorieService: serviceExist.categorie,
+      description: description || serviceExist.description,
+      tarif: serviceExist.tarif,
       duree,
-      uniteDuree,
+      uniteDuree: serviceExist.uniteDuree,
       client,
       technicien: technicien || null,
-      statut: "en_attente"
+      statut: "en_attente",
+      dateIntervention
     });
 
     const demandeEnregistree = await nouvelleDemande.save();
     res.status(201).json(demandeEnregistree);
-
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 };
-
 
 // Récupération d'une demande par son ID
 exports.getDemandeById = async (req, res) => {
@@ -103,5 +117,79 @@ exports.deleteDemande = async (req, res) => {
     res.json({ message: "Demande supprimée avec succès." });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+
+// controllers/demandeController.js
+
+
+
+// Assigner une demande à un technicien
+exports.assignerDemande = async (req, res) => {
+  const { demandeId, technicienId } = req.body;
+
+  try {
+    // Vérifier que le technicien est disponible
+    const technicien = await User.findById(technicienId);
+    if (!technicien || technicien.role !== 'technicien') {
+      return res.status(404).json({ message: "Technicien introuvable." });
+    }
+
+    if (!technicien.disponible) {
+      return res.status(400).json({ message: "Ce technicien n'est pas disponible." });
+    }
+    const demandeExistante = await Demande.findOne({ technicien: technicienId, statut: { $ne: "terminée" } });
+    if (demandeExistante) {
+      return res.status(400).json({ message: "Ce technicien a déjà une demande en cours." });
+    }
+
+    // Mettre à jour la demande
+    const demande = await Demande.findById(demandeId);
+    if (!demande) {
+      return res.status(404).json({ message: "Demande introuvable." });
+    }
+
+    demande.technicien = technicienId;
+    demande.statut = 'en cours';
+    await demande.save();
+
+   
+    // Mettre à jour la dispo du technicien
+    technicien.disponible = false;
+    await technicien.save();
+
+    res.status(200).json({ message: "Demande assignée avec succès.", demande });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erreur lors de l'assignation.", error: err.message });
+  }
+};
+
+// Marquer une demande comme terminée
+exports.terminerDemande = async (req, res) => {
+  const { demandeId } = req.params;
+
+  try {
+    const demande = await Demande.findById(demandeId);
+    if (!demande) {
+      return res.status(404).json({ message: "Demande non trouvée." });
+    }
+
+    demande.statut = 'terminée';
+    await demande.save();
+
+    // Remettre le technicien disponible
+    const technicien = await User.findById(demande.technicien);
+    if (technicien) {
+      technicien.disponible = true;
+      await technicien.save();
+    }
+
+    res.status(200).json({ message: "Demande terminée et technicien disponible." });
+
+  } catch (err) {
+    res.status(500).json({ message: "Erreur lors de la mise à jour.", error: err.message });
   }
 };

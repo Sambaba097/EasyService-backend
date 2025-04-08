@@ -1,17 +1,25 @@
 const mongoose = require("mongoose");
-const Service = require("./service"); // important pour calcul
 
 const SchemaDemande = new mongoose.Schema({
+    numeroDemande: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    categorieService: {
+        type: String,
+        required: true
+    },
     service: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Service",
         required: true
     },
     description: {
-        type: String 
+        type: String
     },
     tarif: {
-        type: Number 
+        type: Number
     },
     statut: {
         type: String,
@@ -25,7 +33,12 @@ const SchemaDemande = new mongoose.Schema({
     uniteDuree: { 
         type: String, 
         required: true, 
-        enum: ["jours", "heures", "minutes"] 
+        enum: ["jours", "heures", "minutes"],
+        default: "heures" 
+    },
+    dateIntervention: {
+        type: Date,
+        required: true
     },
     dateDemande: {
         type: Date,
@@ -33,13 +46,13 @@ const SchemaDemande = new mongoose.Schema({
     },
     client: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Utilisateur",
+        ref: "User",
         required: true
     },
     technicien: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Utilisateur",
-        default: null
+        ref: "User",
+        default: null // assigné par l’admin plus tard
     },
     etatExecution: {
         type: String,
@@ -51,4 +64,7 @@ const SchemaDemande = new mongoose.Schema({
         default: false
     }
 });
-module.exports = mongoose.model("Demande", SchemaDemande);
+
+const Demande = mongoose.model("Demande", SchemaDemande);
+
+module.exports = Demande;

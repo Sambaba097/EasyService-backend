@@ -10,6 +10,9 @@ router.post("/", authenticate, roleMiddleware(['client']), demandeController.cre
 router.put("/:id", authenticate, roleMiddleware(['client', 'technicien']), demandeController.updateDemande);
 router.delete("/:id", authenticate, roleMiddleware(['admin']), demandeController.deleteDemande);
 
+router.post('/assigner', authenticate, roleMiddleware(['admin']), demandeController.assignerDemande);
+router.put('/terminer/:demandeId', authenticate, roleMiddleware(['technicien']), demandeController.terminerDemande);
+
 // Routes accessibles par tous
 router.get("/:id", demandeController.getDemandeById);
 router.get("/", demandeController.getAllDemandes);
