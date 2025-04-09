@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const serviceController = require("../controllers/serviceController");
+
 const { uploadService } = require("../config/multer"); 
 
 // Routes avec contrôleurs
@@ -11,3 +12,4 @@ router.put("/:id", uploadService.single("image"), serviceController.updateServic
 router.delete("/:id", serviceController.deleteService);
 
 module.exports = router;
+

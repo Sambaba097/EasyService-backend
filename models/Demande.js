@@ -1,38 +1,70 @@
-const mongoose = require("mongoose"); 
+const mongoose = require("mongoose");
 
 const SchemaDemande = new mongoose.Schema({
-    titre: {
+    numeroDemande: {
         type: String,
         required: true,
-        trim: true
+        unique: true
     },
-    statut: {
+    categorieService: {
         type: String,
-        enum: ["en_attente", "validée", "rejetée"],
-        default: "en_attente"
-    },
-    dateCreation: {
-        type: Date,
-        default: Date.now
-    },
-    dateIntervention: {
-        type: Date
+        required: true
     },
     service: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Service",
         required: true
     },
+    description: {
+        type: String
+    },
+    tarif: {
+        type: Number
+    },
+    statut: {
+        type: String,
+        enum: ["en_attente", "validée", "rejetée"],
+        default: "en_attente"
+    },
+    duree: { 
+        type: Number, 
+        required: true 
+    },
+    uniteDuree: { 
+        type: String, 
+        required: true, 
+        enum: ["jours", "heures", "minutes"],
+        default: "heures" 
+    },
+    dateIntervention: {
+        type: Date,
+        required: true
+    },
+    dateDemande: {
+        type: Date,
+        default: Date.now
+    },
     client: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Utilisateur",
+        ref: "User",
         required: true
     },
     technicien: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Utilisateur",
-        default: null
+        ref: "User",
+        default: null // assigné par l’admin plus tard
+    },
+    etatExecution: {
+        type: String,
+        enum: ["non_commencée", "en_cours", "terminée"],
+        default: "non_commencée"
+    },
+    factureGeneree: {
+        type: Boolean,
+        default: false
     }
 });
 
-module.exports = mongoose.model("Demande", SchemaDemande);
+const Demande = mongoose.model("Demande", SchemaDemande);
+
+module.exports = Demande;

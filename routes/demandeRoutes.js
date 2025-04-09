@@ -7,8 +7,11 @@ const router = express.Router();
 
 // Routes protégées par l'authentification et vérification du rôle
 router.post("/", authenticate, roleMiddleware(['client']), demandeController.createDemande);
-router.put("/:id", authenticate, roleMiddleware(['client', 'technicien']), demandeController.updateDemande);
+router.put("/:id", authenticate, roleMiddleware(['admin', 'technicien']), demandeController.updateDemande);
 router.delete("/:id", authenticate, roleMiddleware(['admin']), demandeController.deleteDemande);
+
+router.post('/assigner', authenticate, roleMiddleware(['admin']), demandeController.assignerDemande);
+router.put('/terminer/:demandeId', authenticate, roleMiddleware(['technicien']), demandeController.terminerDemande);
 
 // Routes accessibles par tous
 router.get("/:id", demandeController.getDemandeById);

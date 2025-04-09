@@ -6,7 +6,11 @@ const userSchema = new mongoose.Schema({
   prenom: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['admin', 'technicien', 'client'], default: 'client' }
+  role: { type: String, enum: ['admin', 'technicien', 'client'], default: 'client' },
+
+  odooId: {
+    type: Number // l'ID entier d'Odoo
+  }
 });
 
 // Hasher le mot de passe avant de sauvegarder l'utilisateur
