@@ -54,7 +54,7 @@ exports.createDemande = async (req, res) => {
       service,
       categorieService: serviceExist.categorie,
       description: description || serviceExist.description,
-      tarif: serviceExist.tarif,
+      tarif,
       duree,
       uniteDuree: serviceExist.uniteDuree,
       client,
