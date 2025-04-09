@@ -11,6 +11,9 @@ router.post('/login', authController.login);
 // Routes pour crée des techniciens
 router.post('/creer/technicien', technicienController.createTechnicien);
 
+// Routes pour récupérer tous les techniciens
+router.get('/all/techniciens', technicienController.getAlltechniciens);
+
 // Route pour récupérer tous les utilisateurs
 router.get('/users', authController.getAllUsers);
 
