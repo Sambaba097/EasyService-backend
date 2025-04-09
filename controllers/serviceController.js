@@ -1,4 +1,5 @@
 const Service = require("../models/service");
+
 const User = require("../models/User");
 const {
   uploadToCloudinary,
@@ -75,19 +76,19 @@ exports.createService = async (req, res) => {
 
 // Obtenir tous les services
 exports.getAllServices = async (req, res) => {
-  try {
-    const services = await Service.find().populate("categorie");
-    res.status(200).json(services);
-  } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la récupération des services", error });
-  }
+    try {
+        const services = await Service.find().populate("categorie");
+        res.status(200).json(services);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Erreur lors de la récupération des services", error });
+    }
+
 };
 
 //  Obtenir un service par son ID
 exports.getServiceById = async (req, res) => {
+
   try {
     const service = await Service.findById(req.params.id).populate("categorie");
 
@@ -119,6 +120,7 @@ exports.getServiceById = async (req, res) => {
 
 //  Mettre à jour un service
 exports.updateService = async (req, res) => {
+
   let newImageUrl = null; // Déclarer en dehors du try pour être accessible dans le catch
 
   try {
@@ -183,6 +185,7 @@ exports.updateService = async (req, res) => {
 
 //  Supprimer un service
 exports.deleteService = async (req, res) => {
+
   const ServiceId = req.params.id;
   try {
     const service = await Service.findById(ServiceId);
