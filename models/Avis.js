@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+
 const SchemaAvis = new mongoose.Schema({
     note:{
         type:Number,
@@ -18,6 +19,16 @@ const SchemaAvis = new mongoose.Schema({
     client:{
         type:mongoose.Schema.Types.ObjectId,
         ref: "User",
+        required: true
+    },
+    service:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref: "Service",
+        required: true
+    },
+    technicien:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref: "technicien",
         required: true
     }
 })

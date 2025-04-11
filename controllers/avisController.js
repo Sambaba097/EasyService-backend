@@ -3,18 +3,24 @@ const Avis = require("../models/Avis");
 // Soumettre un avis (Réservé aux clients)
 exports.creerAvis = async (req, res) => {
     try {
-        const { note, commentaire } = req.body;
+        const { note, commentaire, technicien, service } = req.body;
         const client = req.user.id; // Récupération automatique de l'ID du client
 
         // Vérifier que l'utilisateur est bien un client
         if (req.user.role !== "client") {
             return res.status(403).json({ message: "Seuls les clients peuvent soumettre un avis." });
         }
+        // verifier que le technicien et le service sont bien fournis
+        if (!technicien || !service) {
+            return res.status(400).json({ message: "Le technicien et le service sont obligatoires." });
+        }
 
         const nouvelAvis = new Avis({
             note,
             commentaire,
-            client
+            client,
+            technicien,
+            service
         });
 
         const avisEnregistre = await nouvelAvis.save();

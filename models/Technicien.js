@@ -15,5 +15,5 @@ const technicienSchema = new mongoose.Schema({
   });
 
   // On ajoute les options pour la discrimination qui permet d'heriter un modél
-const Technicien = User.discriminator('technicien', technicienSchema);
+const Technicien = User.discriminator("technicien", technicienSchema);
 module.exports = Technicien;
