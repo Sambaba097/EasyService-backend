@@ -12,6 +12,7 @@ const corsOptions = {
       "http://localhost:3000",
       "http://localhost:5173",
       "https://easyservice-29e5.onrender.com",
+        "https://easyservice-r1bh.onrender.com", // Nouveau lien et en production
     ],
     credentials: true,
     allowedHeaders: [
