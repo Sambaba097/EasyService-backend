@@ -90,6 +90,16 @@ exports.getAllServices = async (req, res) => {
 exports.getServiceById = async (req, res) => {
 
   try {
+    // Vérifier que l'ID est bien une chaîne valide
+    if (!req.params.id || typeof req.params.id !== 'string') {
+      return res.status(400).json({ message: "ID de service invalide" });
+    }
+
+    // Vérifier le format de l'ID (24 caractères hexadécimaux)
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Format d'ID de service invalide" });
+    }
+
     const service = await Service.findById(req.params.id).populate("categorie");
 
     if (!service)

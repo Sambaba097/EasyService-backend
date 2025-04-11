@@ -3,16 +3,16 @@ const Technicien = require('../models/Technicien');
 
 exports.createTechnicien = async (req, res) => {
     try {
-      const { email, password, prenom, nom, telephone, metier, categorie } = req.body;
+      const { prenom, nom, telephone, metier, categorie, email, password  } = req.body;
       
       const technicien = new Technicien({
-        email,
-        password, 
         prenom,
         nom,
         telephone,
         metier,
         categorie: categorie,
+        email,
+        password, 
         role: 'technicien' 
       });
   

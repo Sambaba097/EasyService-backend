@@ -131,7 +131,7 @@ exports.assignerDemande = async (req, res) => {
 
   try {
     // Vérifier que le technicien est disponible
-    const technicien = await User.findById(technicienId);
+    const technicien = await User.findById(req.params.technicienId);
     if (!technicien || technicien.role !== 'technicien') {
       return res.status(404).json({ message: "Technicien introuvable." });
     }
@@ -151,7 +151,7 @@ exports.assignerDemande = async (req, res) => {
     }
 
     demande.technicien = technicienId;
-    demande.statut = 'en cours';
+    demande.statut = 'en_cours';
     await demande.save();
 
    

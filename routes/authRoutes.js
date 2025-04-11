@@ -20,4 +20,7 @@ router.get('/users', authController.getAllUsers);
 // Route pour récupérer les infos d'un utilisateur
 router.get('/users/:id',authController.getUser);
 
+// Mettre à jours les infos d'un utilisateur
+router.put('/users/:id',authController.updateUser);
+
 module.exports = router;
