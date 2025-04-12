@@ -56,6 +56,7 @@ const avisRoutes = require("./routes/avisRoutes");
 const authRoutes = require("./routes/authRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const searchRoutes = require('./routes/searchRoutes');
 
 // Utilisation des routes
 app.use("/api/planifications", planificationRoutes);
@@ -67,6 +68,7 @@ app.use("/api/avis", avisRoutes);
 app.use("/dashboard", dashboardRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
+app.use('/api/search', searchRoutes);
 
 // Middleware de gestion des erreurs
 app.use((err, req, res, next) => {
