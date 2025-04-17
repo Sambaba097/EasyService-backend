@@ -23,7 +23,7 @@ const SchemaDemande = new mongoose.Schema({
     },
     statut: {
         type: String,
-        enum: ["en_attente", "validée", "rejetée"],
+        enum: ["en_attente", "en_cours", "annulee", "refusee", "terminee",],
         default: "en_attente"
     },
     duree: { 
@@ -56,8 +56,8 @@ const SchemaDemande = new mongoose.Schema({
     },
     etatExecution: {
         type: String,
-        enum: ["non_commencée", "en_cours", "terminée"],
-        default: "non_commencée"
+        enum: ["en_attente", "en_cours", "terminee"],
+        default: "en_attente"
     },
     factureGeneree: {
         type: Boolean,

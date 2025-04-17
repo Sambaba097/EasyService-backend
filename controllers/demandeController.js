@@ -121,6 +121,29 @@ exports.deleteDemande = async (req, res) => {
 };
 
 
+// Pour les clients
+exports.getDemandesByClient = async (req, res) => {
+  try {
+    const demandes = await Demande.find({ client: req.params.clientId })
+      .populate("service client technicien");
+    res.json(demandes);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Pour les techniciens
+exports.getDemandesByTechnicien = async (req, res) => {
+  try {
+    const demandes = await Demande.find({ technicien: req.params.technicienId })
+      .populate("service client technicien");
+    res.json(demandes);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
 // controllers/demandeController.js
 
 
@@ -131,14 +154,14 @@ exports.assignerDemande = async (req, res) => {
 
   try {
     // Vérifier que le technicien est disponible
-    const technicien = await User.findById(req.params.technicienId);
+    const technicien = await User.findById(req.body.technicienId);
     if (!technicien || technicien.role !== 'technicien') {
       return res.status(404).json({ message: "Technicien introuvable." });
     }
 
-    if (!technicien.disponible) {
-      return res.status(400).json({ message: "Ce technicien n'est pas disponible." });
-    }
+    // if (!technicien.disponible) {
+    //   return res.status(400).json({ message: "Ce technicien n'est pas disponible." });
+    // }
     const demandeExistante = await Demande.findOne({ technicien: technicienId, statut: { $ne: "terminée" } });
     if (demandeExistante) {
       return res.status(400).json({ message: "Ce technicien a déjà une demande en cours." });
