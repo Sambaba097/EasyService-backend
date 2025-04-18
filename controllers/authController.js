@@ -2,6 +2,7 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
+const { createOdooContact } = require("../utils/odoo"); // Assurez-vous que le chemin est correct
 
 // Inscription
 exports.register = async (req, res) => {
@@ -9,11 +10,11 @@ exports.register = async (req, res) => {
     const { nom, prenom, email, password, role } = req.body;
 
     console.log(req.body);
-    // Vérifier que le mot de passe est bien fourni
+
     if (!password) {
       return res.status(400).json({ message: "Le mot de passe est requis" });
     }
-    // Vérifier si l'utilisateur existe déjà
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Cet email est déjà utilisé." });
@@ -21,6 +22,11 @@ exports.register = async (req, res) => {
 
     // Créer un nouvel utilisateur
     const user = new User({ nom, prenom, email, password, role });
+    await user.save();
+
+    // 👉 Appel à Odoo pour créer un contact
+    const odooId = await createOdooContact(user);
+    user.odooId = odooId;
     await user.save();
 
     // Générer un token JWT
@@ -43,6 +49,7 @@ exports.register = async (req, res) => {
         prenom: user.prenom,
         email: user.email,
         role: user.role,
+        odooId: user.odooId,
       },
     });
   } catch (err) {
@@ -53,6 +60,7 @@ exports.register = async (req, res) => {
         error: err.message,
       });
     }
+    console.error("Erreur dans register :", err);
     res.status(500).json({ message: "Erreur lors de l'inscription." });
   }
 };
