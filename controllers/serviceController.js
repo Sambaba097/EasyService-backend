@@ -1,5 +1,5 @@
 const Service = require("../models/service");
-
+const { createOdooProduct } = require("../utils/odoo");
 const User = require("../models/User");
 const {
   uploadToCloudinary,
@@ -14,16 +14,9 @@ exports.createService = async (req, res) => {
     const { nom, description, tarif, duree, uniteDuree, categorie, admin } =
       req.body;
 
-    console.log(req.file);
-
     if (
-      !nom ||
-      !description ||
-      !tarif ||
-      !duree ||
-      !uniteDuree ||
-      !categorie ||
-      !admin
+      !nom || !description || !tarif ||
+      !duree || !uniteDuree || !categorie || !admin
     ) {
       return res.status(400).json({ message: "Tous les champs sont requis" });
     }
@@ -39,19 +32,6 @@ exports.createService = async (req, res) => {
       return res.status(400).json({ message: "Ce Service existe déjà" });
     }
 
-    // Validation des champs
-    if (
-      !nom ||
-      !description ||
-      !tarif ||
-      !duree ||
-      !uniteDuree ||
-      !categorie ||
-      !admin
-    ) {
-      return res.status(400).json({ message: "Tous les champs sont requis" });
-    }
-
     const imageUrl = await uploadToCloudinary(req.file.buffer, "Services");
 
     const service = new Service({
@@ -64,15 +44,24 @@ exports.createService = async (req, res) => {
       image: imageUrl,
       admin,
     });
+
     await service.save();
-    res.status(201).json({ message: "Service ajouté avec succès" });
+
+    const odooId = await createOdooProduct(service);
+      service.odooId = odooId;
+      await service.save();
+
+
+
+    res.status(201).json({ message: "Service ajouté avec succès", service });
   } catch (error) {
-    console.error(error);
+    console.error("Erreur lors de la création du service :", error);
     res
       .status(500)
       .json({ message: "Erreur lors de la création du service", error });
   }
 };
+
 
 // Obtenir tous les services
 exports.getAllServices = async (req, res) => {
