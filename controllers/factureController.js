@@ -1,6 +1,8 @@
 // factureController.js
 
 const Facture = require('../models/Facture');
+const mongoose = require('mongoose');
+
 //const User = require('../models/User'); // Pour récupérer les informations des utilisateurs (admin, technicien, client)
 
 /** exports.createFacture = async (req, res) => {
@@ -48,9 +50,11 @@ exports.createFacture = async (req, res) => {
   
       res.status(201).json({ message: "Facture créée avec succès", facture: newFacture });
     } catch (error) {
-      res.status(500).json({ message: "Erreur serveur", error });
+      console.error("Erreur lors de la création de la facture :", error);
+      res.status(500).json({ message: "Erreur serveur", error: error.message });
     }
   };
+  
 
   
 exports.afficherFacture = async (req, res) => {
