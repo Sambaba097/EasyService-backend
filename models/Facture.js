@@ -153,7 +153,7 @@ SchemaFacture.pre('save', async function (next) {
 module.exports = mongoose.model("Facture", SchemaFacture);
 
 // Exemple de création de facture (à exécuter ailleurs dans ton app)
-const Facture = require('./Facture');
+/**const Facture = require('./Facture');
 
 const nouvelleFacture = new Facture({
     montant: 5000,
@@ -168,3 +168,4 @@ const nouvelleFacture = new Facture({
 nouvelleFacture.save()
     .then(() => console.log("📄 Facture enregistrée avec succès"))
     .catch((err) => console.error("💥 Erreur lors de l'enregistrement :", err.message));
+**/

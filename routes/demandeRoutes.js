@@ -13,6 +13,12 @@ router.delete("/:id", authenticate, roleMiddleware(['admin']), demandeController
 router.post('/assigner', authenticate, roleMiddleware(['admin']), demandeController.assignerDemande);
 router.put('/terminer/:demandeId', authenticate, roleMiddleware(['technicien']), demandeController.terminerDemande);
 
+// Récupérer les demandes d'un client spécifique
+router.get('/client/:clientId', demandeController.getDemandesByClient);
+
+// Récupérer les demandes d'un technicien spécifique
+router.get('/technicien/:technicienId', demandeController.getDemandesByTechnicien);
+
 // Routes accessibles par tous
 router.get("/:id", demandeController.getDemandeById);
 router.get("/", demandeController.getAllDemandes);

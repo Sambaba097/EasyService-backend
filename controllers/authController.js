@@ -43,7 +43,6 @@ exports.register = async (req, res) => {
 
     res.status(201).json({
       message: "Utilisateur créé avec succès",
-      token,
       user: {
         nom: user.nom,
         prenom: user.prenom,
@@ -52,6 +51,7 @@ exports.register = async (req, res) => {
         odooId: user.odooId,
       },
     });
+
   } catch (err) {
     if (err.name === "ValidationError") {
       return res.status(400).json({
@@ -98,21 +98,6 @@ exports.login = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
-    // Redirection en fonction du rôle
-    let redirectUrl = "";
-    switch (user.role) {
-      case "technicien":
-        redirectUrl = "/dashboard/technicien";
-        break;
-      case "client":
-        redirectUrl = "/dashboard/client";
-        break;
-      case "admin":
-        redirectUrl = "/dashboard/admin";
-        break;
-      default:
-        return res.status(400).json({ message: "Rôle non reconnu" });
-    }
     // Renvoyer également les informations de l'utilisateur
     res.status(200).json({
       message: "Connexion reussi!",
@@ -209,3 +194,90 @@ exports.updateUser = async (req, res) => {
     });
   }
 };
+
+const transporter = require('../config/email');
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // 1. Vérifier si l'utilisateur existe
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "Aucun utilisateur trouvé avec cet email." });
+    }
+
+    // 2. Générer un token JWT (expire dans 1h)
+    const resetToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    // 3. Sauvegarder le token dans la base de données
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 heure
+    await user.save();
+
+    // 4. Envoyer l'email
+    const resetUrl = `http://ton-site.com/reset-password?token=${resetToken}`;
+
+    await transporter.sendMail({
+      from: '"EASY SERVICE" <baelhadjisamba40@gmail.com>',
+      to: user.email,
+      subject: 'Réinitialisation de mot de passe',
+      html: `
+        <p>Bonjour ${user.prenom},</p>
+        <p>Cliquez <a href="${resetUrl}">ici</a> pour réinitialiser votre mot de passe.</p>
+        <p>Ce lien expire dans 1 heure.</p>
+        <p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
+      `,
+    });
+
+    res.status(200).json({ message: "Un email de réinitialisation a été envoyé." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+// réinitialisation du mot de passe
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    // 1. Vérifier et décoder le token JWT
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // 2. Vérifier si le token est toujours valide en base
+    const user = await User.findOne({
+      _id: decoded.id,
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Token invalide ou expiré." });
+    }
+
+    // 3. Hacher et mettre à jour le mot de passe
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;  // Invalider le token
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ message: "Mot de passe mis à jour avec succès." });
+  } catch (error) {
+    console.error(error);
+    if (error.name === 'TokenExpiredError') {
+      res.status(400).json({ message: "Le lien a expiré." });
+    } else if (error.name === 'JsonWebTokenError') {
+      res.status(400).json({ message: "Token invalide." });
+    } else {
+      res.status(500).json({ message: "Erreur serveur" });
+    }
+  }
+};
+
+
+

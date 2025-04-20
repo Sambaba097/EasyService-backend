@@ -1,6 +1,8 @@
 // factureController.js
 
 const Facture = require('../models/Facture');
+const mongoose = require('mongoose');
+
 //const User = require('../models/User'); // Pour récupérer les informations des utilisateurs (admin, technicien, client)
 
 /** exports.createFacture = async (req, res) => {
@@ -38,9 +40,20 @@ exports.createFacture = async (req, res) => {
         return res.status(400).json({ message: "ID du client invalide." });
       }
   
-      // Vérification du numéro de facture
+      // Générer automatiquement le numéro de facture s'il n'est pas fourni
       if (!req.body.numeroFacture) {
-        return res.status(400).json({ message: "Le numéro de facture est obligatoire." });
+        const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        
+        // Compter le nombre de factures déjà créées aujourd'hui
+        const count = await Facture.countDocuments({
+          createdAt: {
+            $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+            $lt: new Date(new Date().setHours(23, 59, 59, 999))
+          }
+        });
+  
+        const numeroAuto = `FACT-${datePart}-${String(count + 1).padStart(3, '0')}`;
+        req.body.numeroFacture = numeroAuto;
       }
   
       const newFacture = new Facture(req.body);
@@ -48,6 +61,7 @@ exports.createFacture = async (req, res) => {
   
       res.status(201).json({ message: "Facture créée avec succès", facture: newFacture });
     } catch (error) {
+      console.error("Erreur lors de la création de la facture :", error);
       res.status(500).json({ message: "Erreur serveur", error });
     }
   };
