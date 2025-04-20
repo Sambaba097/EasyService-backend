@@ -28,21 +28,9 @@ exports.register = async (req, res) => {
     user.odooId = odooId;
     await user.save();
 
-    // Générer un token JWT
-    const token = jwt.sign(
-      {
-        userId: user._id,
-        role: user.role,
-        email: user.email,
-        prenom: user.prenom,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
 
     res.status(201).json({
       message: "Utilisateur créé avec succès",
-      token,
       user: {
         nom: user.nom,
         prenom: user.prenom,
@@ -51,15 +39,9 @@ exports.register = async (req, res) => {
         odooId: user.odooId,
       },
     });
+
   } catch (err) {
-    if (err.name === "ValidationError") {
-      return res.status(400).json({
-        message:
-          "Données invalides: Erreur lors de la création de l'utilisateur",
-        error: err.message,
-      });
-    }
-    console.error("Erreur dans register :", err);
+    console.error("❌ Erreur dans register:", err);
     res.status(500).json({ message: "Erreur lors de l'inscription." });
   }
 };
