@@ -23,4 +23,9 @@ router.get('/users/:id',authController.getUser);
 // Mettre à jours les infos d'un utilisateur
 router.put('/users/:id',authController.updateUser);
 
+// Route pour mot de passe oublié
+router.post('/forgot-password', authController.forgotPassword);
+// Route pour réinitialiser le mot de passe
+router.post('/reset-password', authController.resetPassword);
+
 module.exports = router;
