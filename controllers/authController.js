@@ -101,7 +101,6 @@ exports.login = async (req, res) => {
     res.status(200).json({
       message: "Connexion reussi!",
       token,
-      redirectUrl,
       user: {
         id: user._id,
         email: user.email,
@@ -218,7 +217,7 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
 
     // 4. Envoyer l'email
-    const resetUrl = `http://ton-site.com/reset-password?token=${resetToken}`;
+    const resetUrl = `http://localhost:3000/?newPassToken=${resetToken}`;
 
     await transporter.sendMail({
       from: '"EASY SERVICE" <baelhadjisamba40@gmail.com>',
@@ -258,9 +257,8 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Token invalide ou expiré." });
     }
 
-    // 3. Hacher et mettre à jour le mot de passe
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
+    // 3. Mettre à jour le mot de passe
+    user.password = newPassword;
     user.resetPasswordToken = undefined;  // Invalider le token
     user.resetPasswordExpires = undefined;
     await user.save();
