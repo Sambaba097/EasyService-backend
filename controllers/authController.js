@@ -10,11 +10,11 @@ exports.register = async (req, res) => {
     const { nom, prenom, email, password, role } = req.body;
 
     console.log(req.body);
-    // Vérifier que le mot de passe est bien fourni
+
     if (!password) {
       return res.status(400).json({ message: "Le mot de passe est requis" });
     }
-    // Vérifier si l'utilisateur existe déjà
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Cet email est déjà utilisé." });
@@ -23,10 +23,23 @@ exports.register = async (req, res) => {
     // Créer un nouvel utilisateur
     const user = new User({ nom, prenom, email, password, role });
     await user.save();
+
     // 👉 Appel à Odoo pour créer un contact
     const odooId = await createOdooContact(user);
     user.odooId = odooId;
     await user.save();
+
+    // Générer un token JWT
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        role: user.role,
+        email: user.email,
+        prenom: user.prenom,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
     res.status(201).json({
       message: "Utilisateur créé avec succès",
@@ -38,8 +51,16 @@ exports.register = async (req, res) => {
         odooId: user.odooId,
       },
     });
+
   } catch (err) {
-    console.error("❌ Erreur dans register:", err);
+    if (err.name === "ValidationError") {
+      return res.status(400).json({
+        message:
+          "Données invalides: Erreur lors de la création de l'utilisateur",
+        error: err.message,
+      });
+    }
+    console.error("Erreur dans register :", err);
     res.status(500).json({ message: "Erreur lors de l'inscription." });
   }
 };
@@ -81,6 +102,7 @@ exports.login = async (req, res) => {
     res.status(200).json({
       message: "Connexion reussi!",
       token,
+      redirectUrl,
       user: {
         id: user._id,
         email: user.email,
@@ -150,7 +172,9 @@ exports.updateUser = async (req, res) => {
 
     // Vérifier le format de l'ID (24 caractères hexadécimaux)
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Format d'ID de user invalide" });
+      return res
+        .status(400)
+        .json({ message: "Format d'ID de user invalide" });
     }
 
     const user = await User.findById(id);
@@ -165,14 +189,13 @@ exports.updateUser = async (req, res) => {
     res.status(200).json("Mise à jours réussis");
   } catch {
     res.status(500).json({
-      message:
-        "Erreur lors de la mise à jour des informations de l'utilisateur",
+      message: "Erreur lors de la mise à jour des informations de l'utilisateur",
       error: err.message,
     });
   }
 };
 
-const transporter = require("../config/email");
+const transporter = require('../config/email');
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -180,15 +203,15 @@ exports.forgotPassword = async (req, res) => {
     // 1. Vérifier si l'utilisateur existe
     const user = await User.findOne({ email });
     if (!user) {
-      return res
-        .status(404)
-        .json({ message: "Aucun utilisateur trouvé avec cet email." });
+      return res.status(404).json({ message: "Aucun utilisateur trouvé avec cet email." });
     }
 
     // 2. Générer un token JWT (expire dans 1h)
-    const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const resetToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
     // 3. Sauvegarder le token dans la base de données
     user.resetPasswordToken = resetToken;
@@ -196,34 +219,21 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
 
     // 4. Envoyer l'email
-    const resetUrl = `https://easyservice-29e5.onrender.com/?newPassToken=${resetToken}`;
+    const resetUrl = `http://ton-site.com/reset-password?token=${resetToken}`;
 
     await transporter.sendMail({
       from: '"EASY SERVICE" <baelhadjisamba40@gmail.com>',
       to: user.email,
-      subject: "Réinitialisation de mot de passe",
+      subject: 'Réinitialisation de mot de passe',
       html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <p>Bonjour <span style="font-weight: bold;">${user.prenom}</span>,</p>
-          <p>Cliquez <a style="text-decoration: underline; color:#f97316" href="${resetUrl}">sur ce lien</a> pour réinitialiser votre mot de passe.</p>
-          <p>Ce lien expire dans <span style="font-weight:bold;">1 heure</span>.</p>
-          <p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
-        
-          <p>Si vous ne parvenez pas à cliquer sur le lien, copiez et collez l'URL suivante dans votre navigateur :</p>
-           <p>${resetUrl}</p>
-
-          <p>Ce message a été envoyé automatiquement, ne répondez pas.</p>
-          <p>Merci,</p>
-          <p>L'équipe <a href="https://easyservice-29e5.onrender.com" style="font-weight:bold; color:#f97316;">EASY SERVICE</a></p>
-          <img src="https://res.cloudinary.com/ds5zfxlhf/image/upload/v1745237611/Logo-EasyService.png" alt="Logo" style="margin-top: 10px;" />
-          
-        </div>
+        <p>Bonjour ${user.prenom},</p>
+        <p>Cliquez <a href="${resetUrl}">ici</a> pour réinitialiser votre mot de passe.</p>
+        <p>Ce lien expire dans 1 heure.</p>
+        <p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
       `,
     });
 
-    res
-      .status(200)
-      .json({ message: "Un email de réinitialisation a été envoyé." });
+    res.status(200).json({ message: "Un email de réinitialisation a été envoyé." });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erreur serveur" });
@@ -242,25 +252,26 @@ exports.resetPassword = async (req, res) => {
     const user = await User.findOne({
       _id: decoded.id,
       resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() },
+      resetPasswordExpires: { $gt: Date.now() }
     });
 
     if (!user) {
       return res.status(400).json({ message: "Token invalide ou expiré." });
     }
 
-    // 3. Mettre à jour le mot de passe
-    user.password = newPassword;
-    user.resetPasswordToken = undefined; // Invalider le token
+    // 3. Hacher et mettre à jour le mot de passe
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;  // Invalider le token
     user.resetPasswordExpires = undefined;
     await user.save();
 
     res.status(200).json({ message: "Mot de passe mis à jour avec succès." });
   } catch (error) {
     console.error(error);
-    if (error.name === "TokenExpiredError") {
+    if (error.name === 'TokenExpiredError') {
       res.status(400).json({ message: "Le lien a expiré." });
-    } else if (error.name === "JsonWebTokenError") {
+    } else if (error.name === 'JsonWebTokenError') {
       res.status(400).json({ message: "Token invalide." });
     } else {
       res.status(500).json({ message: "Erreur serveur" });

@@ -1,11 +1,10 @@
 const axios = require("axios");
 
-
 async function createOdooContact(user) {
   const url = `${process.env.ODOO_URL}/jsonrpc`;
 
   try {
-    // 1. Authentification
+    console.log("👉 Début de l'authentification Odoo...");
     const loginResponse = await axios.post(url, {
       jsonrpc: "2.0",
       method: "call",
@@ -20,11 +19,12 @@ async function createOdooContact(user) {
       },
       id: 1
     });
-
+  
     const uid = loginResponse.data.result;
+    console.log("✅ Authentification réussie - UID :", uid);
     if (!uid) throw new Error("Erreur d'authentification Odoo");
-
-    // 2. Création du contact
+  
+    console.log("👉 Création du contact...");
     const contactResponse = await axios.post(url, {
       jsonrpc: "2.0",
       method: "call",
@@ -45,21 +45,16 @@ async function createOdooContact(user) {
       },
       id: 2
     });
-
-    const contactId = contactResponse.data.result;
-
-    // Vérifie si Odoo a bien retourné un ID
-    if (!contactId) throw new Error("Échec de la création du contact Odoo");
-
-    return contactId;
-
+  
+    console.log("✅ Contact Odoo créé avec succès - ID :", contactResponse.data.result);
+    return contactResponse.data.result;
+  
   } catch (err) {
-    console.error("❌ Erreur createOdooContact:", err.response?.data || err.message);
-    return null; // <- Très important pour que le register le détecte
+    console.error("❌ Erreur lors de la création du contact Odoo :", err?.response?.data || err.message);
+    throw err;
   }
+  
 }
-
-
 
 async function createOdooProduct(service) {
     const url = `${process.env.ODOO_URL}/jsonrpc`;
