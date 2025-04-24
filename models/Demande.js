@@ -23,7 +23,7 @@ const SchemaDemande = new mongoose.Schema({
     },
     statut: {
         type: String,
-        enum: ["en_attente", "en_cours", "annulee", "refusee", "terminee",],
+        enum: ["en_attente", "acceptee", "en_cours", "annulee", "refusee", "terminee",],
         default: "en_attente"
     },
     duree: { 
@@ -40,6 +40,10 @@ const SchemaDemande = new mongoose.Schema({
         type: Date,
         required: true
     },
+    dates: {
+        debutIntervention: Date,
+        finIntervention: Date
+      },
     dateDemande: {
         type: Date,
         default: Date.now
@@ -56,8 +60,8 @@ const SchemaDemande = new mongoose.Schema({
     },
     etatExecution: {
         type: String,
-        enum: ["en_attente", "en_cours", "terminee"],
-        default: "en_attente"
+        enum: ["non_commencee", "en_cours", "terminee", "annulee"],
+        default: "non_commencee"
     },
     factureGeneree: {
         type: Boolean,

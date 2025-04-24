@@ -29,7 +29,15 @@ const messageSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
-  }
+  },
+  demande: {
+    type: Schema.Types.ObjectId,
+    ref: 'Demande',
+  },
+  lu: {
+    type: Boolean,
+    default: false
+  },
 });
 
 module.exports = mongoose.model('Message', messageSchema);

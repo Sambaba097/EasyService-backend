@@ -11,7 +11,8 @@ const technicienSchema = new mongoose.Schema({
       ref: 'Categorie',
       required: true 
     },
-    firstConnexion: { type: Boolean, default: false}
+    firstConnexion: { type: Boolean, default: true},
+    disponible: { type: Boolean, default: true },
   });
 
   // On ajoute les options pour la discrimination qui permet d'heriter un modél

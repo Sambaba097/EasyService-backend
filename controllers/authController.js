@@ -102,7 +102,6 @@ exports.login = async (req, res) => {
     res.status(200).json({
       message: "Connexion reussi!",
       token,
-      redirectUrl,
       user: {
         id: user._id,
         email: user.email,

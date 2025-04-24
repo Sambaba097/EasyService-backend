@@ -159,10 +159,10 @@ exports.assignerDemande = async (req, res) => {
       return res.status(404).json({ message: "Technicien introuvable." });
     }
 
-    // if (!technicien.disponible) {
-    //   return res.status(400).json({ message: "Ce technicien n'est pas disponible." });
-    // }
-    const demandeExistante = await Demande.findOne({ technicien: technicienId, statut: { $ne: "terminée" } });
+    if (!technicien.disponible) {
+      return res.status(400).json({ message: "Ce technicien n'est pas disponible." });
+    }
+    const demandeExistante = await Demande.findOne({ technicien: technicienId, statut: { $ne: "terminee" } });
     if (demandeExistante) {
       return res.status(400).json({ message: "Ce technicien a déjà une demande en cours." });
     }
@@ -174,7 +174,8 @@ exports.assignerDemande = async (req, res) => {
     }
 
     demande.technicien = technicienId;
-    demande.statut = 'en_cours';
+    demande.statut = 'acceptee'; // Mettre à jour le statut de la demande
+    demande.etatExecution = 'non_commencee'; // Mettre à jour l'état d'exécution
     await demande.save();
 
    
@@ -190,29 +191,87 @@ exports.assignerDemande = async (req, res) => {
   }
 };
 
+// Commencer une demande
+exports.commencerDemande = async (req, res) => {
+  try {
+    const { demandeId } = req.params;
+    const { dateDebut } = req.body; // Récupération de la date depuis le corps
+
+    // Vérification des données
+    if (!dateDebut) {
+      return res.status(400).json({ message: "La date de début est requise." });
+    }
+
+    const demande = await Demande.findById(demandeId);
+    
+    if (!demande) {
+      return res.status(404).json({ message: "Demande introuvable." });
+    }
+
+    // Initialisation de l'objet dates si inexistant
+    if (!demande.dates) {
+      demande.dates = {};
+    }
+
+    // Mise à jour des dates
+    demande.etatExecution = "en_cours";
+    demande.statut = "en_cours";
+    demande.dates.debutIntervention = new Date(dateDebut);
+    
+    await demande.save();
+
+    res.status(200).json({ 
+      message: "Tâche marquée comme commencée.",
+      demande: {
+        id: demande._id,
+        statut: demande.statut,
+        dateDebut: demande.dates.debutIntervention
+      }
+    });
+
+  } catch (err) {
+    console.error("Erreur serveur:", err);
+    res.status(500).json({ 
+      message: "Erreur serveur",
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
 // Marquer une demande comme terminée
 exports.terminerDemande = async (req, res) => {
   const { demandeId } = req.params;
 
   try {
     const demande = await Demande.findById(demandeId);
+    
     if (!demande) {
       return res.status(404).json({ message: "Demande non trouvée." });
     }
 
-    demande.statut = 'terminée';
+    if (demande.etatExecution !== "en_cours") {
+      return res.status(400).json({ 
+        message: "La tâche doit être en cours pour être terminée." 
+      });
+    }
+
+    // Mettre à jour les états
+    demande.etatExecution = "terminee";
+    demande.statut = "terminee";
+    demande.dates.finIntervention = new Date();
+
     await demande.save();
 
-    // Remettre le technicien disponible
+    // Libérer le technicien
     const technicien = await User.findById(demande.technicien);
     if (technicien) {
       technicien.disponible = true;
       await technicien.save();
     }
 
-    res.status(200).json({ message: "Demande terminée et technicien disponible." });
+    res.status(200).json({ message: "Demande terminée avec succès.", demande });
 
   } catch (err) {
-    res.status(500).json({ message: "Erreur lors de la mise à jour.", error: err.message });
+    res.status(500).json({ message: "Erreur lors de la finalisation.", error: err.message });
   }
 };

@@ -1,86 +1,230 @@
 const Message = require('../models/Message');
+const User = require('../models/User');
+const Demande = require('../models/Demande');
 
 // Créer un message
 exports.createMessage = async (req, res) => {
   try {
-    const { titre, objet, contenu, destinataire } = req.body;
+    const { titre, objet, contenu, destinataireId, demandeId } = req.body;
+    const expediteurId = req.user.id;
 
-    // L'expéditeur est l'utilisateur connecté
-    const expediteur = req.user.id;
+    // Validation du destinataire
+    const destinataire = await User.findById(destinataireId);
+    if (!destinataire) {
+      return res.status(404).json({ success: false, error: 'Destinataire non trouvé' });
+    }
 
-    const message = new Message({ titre, objet, contenu, destinataire, expediteur });
+    // Validation de la demande si fournie
+    if (demandeId) {
+      const demande = await Demande.findById(demandeId);
+      if (!demande) {
+        return res.status(404).json({ success: false, error: 'Demande non trouvée' });
+      }
+    }
+
+    const message = new Message({ 
+      titre, 
+      objet, 
+      contenu, 
+      destinataire: destinataireId, 
+      expediteur: expediteurId,
+      demande: demandeId 
+    });
+
     await message.save();
 
-    res.status(201).json({ success: true, message: 'Message envoyé avec succès', data: message });
+    // Populate pour la réponse
+    const populatedMessage = await Message.findById(message._id)
+      .populate('expediteur', 'prenom nom email photo')
+      .populate('destinataire', 'prenom nom email photo');
+
+    res.status(201).json({ 
+      success: true, 
+      message: 'Message envoyé avec succès', 
+      data: populatedMessage 
+    });
+
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 };
 
-// Récupérer tous les messages reçus par l'utilisateur connecté
-exports.getMessagesRecus = async (req, res) => {
+// Messages reçus avec filtres selon le rôle
+exports.getReceivedMessages = async (req, res) => {
   try {
-    const messages = await Message.find({ destinataire: req.user.id })
-      .populate('expediteur', 'nom email') 
-      .sort({ date: -1 }); // Tri du plus récent au plus ancien
+    const { limit, read } = req.query;
+    const query = { destinataire: req.user.id };
 
-    res.json(messages);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// Récupérer tous les messages envoyés par l'utilisateur connecté
-exports.getMessagesEnvoyes = async (req, res) => {
-  try {
-    const messages = await Message.find({ expediteur: req.user.id })
-      .populate('destinataire', 'nom email') // 
-      .sort({ date: -1 });
-
-    res.json(messages);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// Détails d’un message (accessible seulement si on est destinataire ou expéditeur)
-exports.getMessageById = async (req, res) => {
-  try {
-    const message = await Message.findById(req.params.id)
-      .populate('expediteur', 'nom email')
-      .populate('destinataire', 'nom email');
-
-    if (!message) return res.status(404).json({ message: 'Message non trouvé' });
-
-    // Vérifie que l’utilisateur est soit l'expéditeur soit le destinataire
-    if (
-      !message.expediteur._id.equals(req.user.id) &&
-      !message.destinataire._id.equals(req.user.id)
-    ) {
-      return res.status(403).json({ message: "Accès non autorisé à ce message" });
+    if (read !== undefined) {
+      query.lu = read === 'true';
     }
 
-    res.json(message);
+    let messagesQuery = Message.find(query)
+      .populate('expediteur', 'prenom nom email photo role')
+      .sort({ date: -1 });
+
+    if (limit) {
+      messagesQuery = messagesQuery.limit(parseInt(limit));
+    }
+
+    const messages = await messagesQuery;
+
+    res.json({ 
+      success: true, 
+      count: messages.length, 
+      data: messages 
+    });
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
-// Supprimer un message (seul l’expéditeur peut supprimer)
+// Messages envoyés
+exports.getSentMessages = async (req, res) => {
+  try {
+    const messages = await Message.find({ expediteur: req.user.id })
+      .populate('destinataire', 'prenom nom email photo role')
+      .sort({ date: -1 });
+
+    res.json({ 
+      success: true, 
+      count: messages.length, 
+      data: messages 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Messages pour l'admin (tous les messages)
+exports.getAdminMessages = async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Accès non autorisé' });
+    }
+
+    const messages = await Message.find()
+      .populate('expediteur', 'prenom nom email photo role')
+      .populate('destinataire', 'prenom nom email photo role')
+      .sort({ date: -1 });
+
+    res.json({ 
+      success: true, 
+      count: messages.length, 
+      data: messages 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Messages liés à une demande spécifique
+exports.getMessagesByDemande = async (req, res) => {
+  try {
+    const { demandeId } = req.params;
+
+    // Vérifier l'accès à la demande
+    const demande = await Demande.findById(demandeId);
+    if (!demande) {
+      return res.status(404).json({ success: false, error: 'Demande non trouvée' });
+    }
+
+    // Seuls le client, le technicien ou l'admin peuvent voir ces messages
+    if (
+      req.user.role !== 'admin' &&
+      !demande.client.equals(req.user.id) &&
+      !demande.technicien.equals(req.user.id)
+    ) {
+      return res.status(403).json({ success: false, error: 'Accès non autorisé' });
+    }
+
+    const messages = await Message.find({ demande: demandeId })
+      .populate('expediteur', 'prenom nom email photo role')
+      .populate('destinataire', 'prenom nom email photo role')
+      .sort({ date: -1 });
+
+    res.json({ 
+      success: true, 
+      count: messages.length, 
+      data: messages 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Marquer un message comme lu
+exports.markAsRead = async (req, res) => {
+  try {
+    const message = await Message.findByIdAndUpdate(
+      req.params.id,
+      { lu: true, dateLecture: new Date() },
+      { new: true }
+    )
+    .populate('expediteur', 'prenom nom email photo role');
+
+    if (!message) {
+      return res.status(404).json({ success: false, error: 'Message non trouvé' });
+    }
+
+    // Vérifier que l'utilisateur est bien le destinataire
+    if (!message.destinataire.equals(req.user.id)) {
+      return res.status(403).json({ success: false, error: 'Accès non autorisé' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Message marqué comme lu', 
+      data: message 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Supprimer un message
 exports.deleteMessage = async (req, res) => {
   try {
     const message = await Message.findById(req.params.id);
 
-    if (!message) return res.status(404).json({ message: 'Message non trouvé' });
+    if (!message) {
+      return res.status(404).json({ success: false, error: 'Message non trouvé' });
+    }
 
-    // Vérifie que l'utilisateur est bien l'expéditeur
-    if (!message.expediteur.equals(req.user.id)) {
-      return res.status(403).json({ message: 'Vous ne pouvez supprimer que vos propres messages' });
+    // Seul l'expéditeur, le destinataire ou un admin peut supprimer
+    if (
+      req.user.role !== 'admin' &&
+      !message.expediteur.equals(req.user.id) &&
+      !message.destinataire.equals(req.user.id)
+    ) {
+      return res.status(403).json({ success: false, error: 'Autorisation refusée' });
     }
 
     await message.deleteOne();
-    res.json({ message: 'Message supprimé' });
+
+    res.json({ 
+      success: true, 
+      message: 'Message supprimé avec succès' 
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Récupérer les messages non lus (pour notifications)
+exports.getUnreadCount = async (req, res) => {
+  try {
+    const count = await Message.countDocuments({
+      destinataire: req.user.id,
+      lu: false
+    });
+
+    res.json({ 
+      success: true, 
+      data: { count } 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 };
