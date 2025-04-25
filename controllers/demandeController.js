@@ -3,6 +3,7 @@ const Service = require("../models/service");
 const User = require('../models/User');
 const Compteur = require("../models/Compteur"); 
 
+
 // Création d'une nouvelle demande
 exports.createDemande = async (req, res) => {
   try {
@@ -93,8 +94,8 @@ exports.getAllDemandes = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
-// Mise à jour d'une demande
+ 
+//Mise à jour d'une demande
 exports.updateDemande = async (req, res) => {
   try {
     const demande = await Demande.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -105,7 +106,7 @@ exports.updateDemande = async (req, res) => {
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
-};
+};  
 
 // Suppression d'une demande
 exports.deleteDemande = async (req, res) => {

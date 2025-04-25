@@ -69,6 +69,28 @@ const SchemaDemande = new mongoose.Schema({
     }
 });
 
+// Middleware pour déclencher la génération de facture
+SchemaDemande.post('findOneAndUpdate', async function(doc) {
+    if (doc.etat === 'Terminé' && !doc.facture) {
+        const Facture = mongoose.model('Facture');
+        const facture = new Facture({
+            refDemande: doc._id,
+            client: doc.client,
+            service: doc.service,
+            technicien: doc.technicien,
+            admin: doc.admin,
+            montant: doc.montant || calculerMontant(doc) // Fonction à implémenter
+        });
+
+        await facture.save();
+        doc.facture = facture._id;
+        await doc.save();
+
+        // Génération du PDF
+        await genererFacturePDF(facture);
+    }
+});
+
 const Demande = mongoose.model("Demande", SchemaDemande);
 
 module.exports = Demande;

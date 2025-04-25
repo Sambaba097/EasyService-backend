@@ -12,5 +12,6 @@ router.get('/afficher/facture/:id', factureController.afficherFacture);
 router.get('/afficher/facture', factureController.afficherToutesLesFactures);
 router.put('/modifier/facture/:id', authenticate, factureController.mettreAJourFacture);
 router.delete('/supprimer/facture/:id', authenticate, factureController.supprimerFacture);
+router.get('/:id/download', factureController.downloadFacture);
 
 module.exports = router;

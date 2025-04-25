@@ -32,7 +32,53 @@ const mongoose = require('mongoose');
     }
 };
 **/
+// controllers/factureController.js
+const axios = require('axios');
+require('dotenv').config();
 
+exports.downloadFacture = async (req, res) => {
+    try {
+        const facture = await Facture.findById(req.params.id);
+        
+        if (!facture) {
+            return res.status(404).json({ message: "Facture non trouvée" });
+        }
+
+        // 1. Authentification Odoo
+        const loginResponse = await axios.post(`${process.env.ODOO_URL}/jsonrpc`, {
+            jsonrpc: '2.0',
+            method: 'call',
+            params: {
+                service: 'common',
+                method: 'login',
+                args: [process.env.ODOO_DB, process.env.ODOO_USER, process.env.ODOO_PASS]
+            },
+            id: 1
+        });
+
+        const uid = loginResponse.data.result;
+
+        // 2. Génération de l'URL du PDF
+        const pdfUrl = `${process.env.ODOO_URL}/report/pdf/account.move/${facture.odooInvoiceId}`;
+        
+        // 3. Stream du PDF vers le client
+        const pdfResponse = await axios.get(pdfUrl, {
+            responseType: 'stream',
+            headers: {
+                'Cookie': `session_id=${uid};` // Maintenir la session
+            }
+        });
+
+        // 4. Envoi du PDF au client
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=facture_${facture.numeroFacture}.pdf`);
+        pdfResponse.data.pipe(res);
+
+    } catch (error) {
+        console.error('Erreur téléchargement PDF:', error);
+        res.status(500).json({ message: "Erreur lors du téléchargement" });
+    }
+};
 exports.createFacture = async (req, res) => {
     try {
       // Vérification de l'ID client

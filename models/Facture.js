@@ -45,7 +45,11 @@ const SchemaFacture = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Demande",
         required: true
-    }
+    },
+    odooInvoiceId: {  // ID de la facture dans Odoo
+        type: Number,
+        required: true
+    },
 });
 
 SchemaFacture.pre('save', async function (next) {
