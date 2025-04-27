@@ -6,60 +6,43 @@ const User = require('./User');
 require('dotenv').config();
 
 const SchemaFacture = new mongoose.Schema({
-    numeroFacture: {
-        type: String,
-        unique: true
-    },
-    montant: {
-        type: Number,
-        required: true
-    },
-    dateEmission: {
-        type: Date,
-        default: Date.now
-    },
-    service: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Service",
-        required: true
-    },
-    technicien: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
-    },
-    client: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
-    },
-    admin: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
-    },
-    odooInvoiceId: {
-        type: Number
-    },
-    refDemande: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Demande",
-        required: true
-    },
-    
+    numeroFacture: { type: String, unique: true },
+    montant: { type: Number, required: true },
+    dateEmission: { type: Date, default: Date.now },
+    service: { type: mongoose.Schema.Types.ObjectId, ref: "Service", required: true },
+    technicien: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    client: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    admin: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    odooInvoiceId: { type: Number },
+    refDemande: { type: mongoose.Schema.Types.ObjectId, ref: "Demande", required: true },
 });
+
+// Fonction pour se connecter à Odoo
+async function loginOdoo() {
+    const response = await axios.post(`${process.env.ODOO_URL}/jsonrpc`, {
+        jsonrpc: '2.0',
+        method: 'call',
+        params: {
+            service: 'common',
+            method: 'login',
+            args: [process.env.ODOO_DB, process.env.ODOO_USER, process.env.ODOO_PASS]
+        },
+        id: 1
+    });
+    const uid = response.data.result;
+    if (!uid) throw new Error("Échec de l'authentification avec Odoo.");
+    return uid;
+}
 
 SchemaFacture.pre('save', async function (next) {
     try {
         if (this.isNew) {
-            // Génération du numéro de facture avec l'année
             const anneeFacture = new Date(this.dateEmission).getFullYear();
             const numero = await NumeroFacture.findOneAndUpdate(
                 { annee: anneeFacture },
                 { $inc: { dernierNumero: 1 } },
                 { new: true, upsert: true, setDefaultsOnInsert: true }
             );
-            
             this.numeroFacture = `FAC-${anneeFacture}-${String(numero.dernierNumero).padStart(4, '0')}`;
             console.log(`🔢 Numéro de facture généré: ${this.numeroFacture}`);
         }
@@ -78,28 +61,14 @@ SchemaFacture.pre('save', async function (next) {
             return next(new Error('Un ou plusieurs odooId sont manquants.'));
         }
 
-        // Authentification Odoo
-        const loginResponse = await axios.post(`${process.env.ODOO_URL}/jsonrpc`, {
-            jsonrpc: '2.0',
-            method: 'call',
-            params: {
-                service: 'common',
-                method: 'login',
-                args: [process.env.ODOO_DB, process.env.ODOO_USER, process.env.ODOO_PASS]
-            },
-            id: 1
-        });
+        const uid = await loginOdoo();
 
-        const uid = loginResponse.data.result;
-        if (!uid) throw new Error("Échec de l'authentification avec Odoo.");
-
-        // Création du service dans Odoo si nécessaire
+        // Création du service dans Odoo si besoin
         if (!service.odooId) {
             const produitPayload = {
                 name: service.nom || "Service Auto",
                 type: "service"
             };
-
             const createServiceResponse = await axios.post(`${process.env.ODOO_URL}/jsonrpc`, {
                 jsonrpc: '2.0',
                 method: 'call',
@@ -117,14 +86,13 @@ SchemaFacture.pre('save', async function (next) {
                 },
                 id: 2
             });
-
             const newServiceOdooId = createServiceResponse.data.result;
             service.odooId = newServiceOdooId;
             await service.save();
             idsOdoo.serviceId = newServiceOdooId;
         }
 
-        // Récupération des informations du client
+        // Lecture des infos client
         const userResponse = await axios.post(`${process.env.ODOO_URL}/jsonrpc`, {
             jsonrpc: '2.0',
             method: 'call',
@@ -143,12 +111,34 @@ SchemaFacture.pre('save', async function (next) {
             id: 4
         });
 
-        const userData = userResponse.data.result?.[0];
-        const partnerId = userData?.partner_id?.[0];
-        const userName = userData?.name;
+        let userData = userResponse.data.result?.[0];
+        let partnerId = userData?.partner_id?.[0];
 
         if (!partnerId) {
-            throw new Error(`Impossible de récupérer le partner_id pour l'utilisateur ${userName || idsOdoo.clientId}`);
+            // Création d'un partenaire si absent
+            const createPartnerResponse = await axios.post(`${process.env.ODOO_URL}/jsonrpc`, {
+                jsonrpc: '2.0',
+                method: 'call',
+                params: {
+                    service: 'object',
+                    method: 'execute_kw',
+                    args: [
+                        process.env.ODOO_DB,
+                        uid,
+                        process.env.ODOO_PASS,
+                        'res.partner',
+                        'create',
+                        [{
+                            name: client.nom,
+                            email: client.email,
+                            phone: client.telephone,
+                        }]
+                    ]
+                },
+                id: 7
+            });
+            partnerId = createPartnerResponse.data.result;
+            console.log(`🆕 Nouveau partner_id créé: ${partnerId}`);
         }
 
         // Vérification du partenaire
@@ -179,7 +169,7 @@ SchemaFacture.pre('save', async function (next) {
 
         console.log(`👤 Client trouvé: ${clientName}`);
 
-        // Création de la facture Odoo
+        // Création de la facture dans Odoo
         const factureOdooPayload = {
             move_type: 'out_invoice',
             partner_id: partnerId,
@@ -187,7 +177,7 @@ SchemaFacture.pre('save', async function (next) {
             x_technicien_id: idsOdoo.technicienId,
             invoice_user_id: idsOdoo.adminId,
             x_service_id: idsOdoo.serviceId,
-            ref: this.numeroFacture, // On utilise notre propre numérotation
+            ref: this.numeroFacture,
             invoice_line_ids: [[0, 0, {
                 name: `${service.nom} - Client: ${clientName}`,
                 quantity: 1,
@@ -218,11 +208,11 @@ SchemaFacture.pre('save', async function (next) {
         });
 
         console.log("✅ Réponse d'Odoo :", JSON.stringify(odooResponse.data, null, 2));
-        
+
         if (!odooResponse.data.result) {
             throw new Error("❌ Aucun ID de facture reçu depuis Odoo.");
         }
-        
+
         this.odooInvoiceId = odooResponse.data.result;
         next();
 
