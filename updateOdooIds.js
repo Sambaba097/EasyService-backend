@@ -14,7 +14,7 @@ mongoose.connect(process.env.MONGO_URI, {
   console.log("✅ Connecté à MongoDB");
 
   try {
-    await User.findByIdAndUpdate("67fe4179b335d44e295b9851", { odooId: 2 }); // technicien
+    await User.findByIdAndUpdate("67f7dfa0fe74914bd02f74dd", { odooId: 8 }); // technicien
 
    /**  await Service.findByIdAndUpdate("67e33e1c01c1370b76fcd839", { odooId: 1 }); // client
     await Service.findByIdAndUpdate("67e4757a9ec76e7117e0f0a6", { odooId: 2 }); // technicien
