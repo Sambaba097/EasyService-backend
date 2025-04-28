@@ -13,6 +13,6 @@ const fileFilter = (req, file, cb) => {
 };
 
 const uploadService = multer({ storage, fileFilter });
-//const uploadUser = multer({ storage, fileFilter });
+
 
 module.exports = { uploadService };

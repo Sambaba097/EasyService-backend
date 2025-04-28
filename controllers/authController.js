@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
 const { createOdooContact } = require("../utils/odoo"); // Assurez-vous que le chemin est correct
-const { uploadToCloudinary ,deleteFromCloudinary, getPublicIdFromUrl } = require("../config/cloudinary");
+const { uploadService } = require('../config/multer');
 
 // Inscription
 exports.register = async (req, res) => {
@@ -281,7 +281,7 @@ exports.resetPassword = async (req, res) => {
 
 // Mettre à jour l'image de profil
 exports.uploadProfileImage = [
-  uploadToCloudinary.single('image'), // 'image' est le nom du champ dans le form-data
+  uploadService.single('image'), // 'image' est le nom du champ dans le form-data
   async (req, res, next) => {
     try {
       const user = await User.findById(req.user.id);
@@ -308,25 +308,3 @@ exports.uploadProfileImage = [
     }
   }
 ];
-
-exports.deleteImage = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-
-    // Étape 1: Vérification de l'existence
-    if (!user.image) {
-      return res.status(400).json({ error: "Aucune image à supprimer" });
-    }
-
-    // Étape 2: Suppression dans Cloudinary
-    await deleteFromCloudinary(user.image.publicId);
-
-    // Étape 3: Nettoyage dans MongoDB
-    user.image = undefined;
-    await user.save();
-
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
