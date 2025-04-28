@@ -12,10 +12,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''  
   },
-  publicId: {
-    type: String,
-    default: null 
-  }
+  publicId: String
 },
 
   odooId: {
