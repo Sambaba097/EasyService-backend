@@ -8,8 +8,15 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { type: String, enum: ['admin', 'technicien', 'client'], default: 'client' },
   image: {
-    url: String, default: '', publicId: String
+  url: {
+    type: String,
+    default: ''  
   },
+  publicId: {
+    type: String,
+    default: null 
+  }
+},
 
   odooId: {
     type: Number // l'ID entier d'Odoo
