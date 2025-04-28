@@ -27,5 +27,9 @@ router.put('/users/:id',authController.updateUser);
 router.post('/forgot-password', authController.forgotPassword);
 // Route pour réinitialiser le mot de passe
 router.post('/reset-password', authController.resetPassword);
+// ajouter un image de profil
+router.post('/profil/image', authController.uploadProfileImage);
+// supprimer un image de profil
+router.delete('/profil/image/supprimer', authController.deleteImage);
 
 module.exports = router;

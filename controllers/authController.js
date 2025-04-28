@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
 const { createOdooContact } = require("../utils/odoo"); // Assurez-vous que le chemin est correct
+const { uploadToCloudinary ,deleteFromCloudinary, getPublicIdFromUrl } = require("../config/cloudinary");
 
 // Inscription
 exports.register = async (req, res) => {
@@ -275,5 +276,57 @@ exports.resetPassword = async (req, res) => {
     } else {
       res.status(500).json({ message: "Erreur serveur" });
     }
+  }
+};
+
+// Mettre à jour l'image de profil
+exports.uploadProfileImage = [
+  uploadToCloudinary.single('image'), // 'image' est le nom du champ dans le form-data
+  async (req, res, next) => {
+    try {
+      const user = await User.findById(req.user.id);
+      
+      // Supprimer l'ancienne image si elle existe
+      if (user.image && user.image.publicId) {
+        await deleteFromCloudinary(user.image.publicId);
+      }
+
+      // Mettre à jour l'utilisateur avec la nouvelle image
+      user.image = {
+        url: req.file.path,
+        publicId: req.file.filename
+      };
+      
+      await user.save();
+      
+      res.status(200).json({
+        success: true,
+        data: user
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+];
+
+exports.deleteImage = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    // Étape 1: Vérification de l'existence
+    if (!user.image) {
+      return res.status(400).json({ error: "Aucune image à supprimer" });
+    }
+
+    // Étape 2: Suppression dans Cloudinary
+    await deleteFromCloudinary(user.image.publicId);
+
+    // Étape 3: Nettoyage dans MongoDB
+    user.image = undefined;
+    await user.save();
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
