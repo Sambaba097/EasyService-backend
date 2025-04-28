@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
 const { createOdooContact } = require("../utils/odoo"); // Assurez-vous que le chemin est correct
-const { uploadService } = require('../config/multer');
+const { uploadToCloudinary, deleteFromCloudinary, getPublicIdFromUrl } = require('../config/cloudinary');
 
 // Inscription
 exports.register = async (req, res) => {
@@ -279,32 +279,46 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-// Mettre à jour l'image de profil
-exports.uploadProfileImage = [
-  uploadService.single('image'), // 'image' est le nom du champ dans le form-data
-  async (req, res, next) => {
-    try {
-      const user = await User.findById(req.user.id);
-      
-      // Supprimer l'ancienne image si elle existe
-      if (user.image && user.image.publicId) {
-        await deleteFromCloudinary(user.image.publicId);
-      }
+// Mettre à jour la photo de profil de l'utilisateur
+exports.updateProfilePicture = async (req, res) => {
+  try {
+    const userId = req.user.id; // récupéré après authentification 
+    const file = req.file; // image envoyée depuis un formulaire (Multer doit être utilisé)
 
-      // Mettre à jour l'utilisateur avec la nouvelle image
-      user.image = {
-        url: req.file.path,
-        publicId: req.file.filename
-      };
-      
-      await user.save();
-      
-      res.status(200).json({
-        success: true,
-        data: user
-      });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    if (!file) {
+      return res.status(400).json({ message: 'Aucune image envoyée.' });
     }
+
+    // Trouver l'utilisateur
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé." });
+    }
+
+    // Si l'utilisateur a déjà une image, on supprime l'ancienne sur Cloudinary
+    if (user.image && user.image.publicId) {
+      await deleteFromCloudinary(user.image.publicId);
+    }
+
+    // Upload la nouvelle image
+    const uploadedResponse = await uploadToCloudinary(req.file.buffer, 'profiles');
+
+    // Extraire le publicId
+    const newPublicId = getPublicIdFromUrl(uploadedResponse);
+
+    // Mise à jour du modèle User
+    user.image = {
+      url: uploadedResponse,
+      publicId: newPublicId,
+    };
+
+    await user.save();
+
+    res.status(200).json({ message: 'Photo de profil mise à jour avec succès.', image: user.image });
+
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la photo de profil:', error);
+    res.status(500).json({ message: 'Erreur serveur.', error: error.message });
   }
-];
+};
