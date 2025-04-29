@@ -90,6 +90,7 @@ exports.downloadFacture = async (req, res) => {
     } catch (error) {
         console.error('❌ Erreur:', error.response?.data || error.message);
         res.status(500).send('Erreur lors de la génération de la facture');
+        console.log(error);
     }
 };
 

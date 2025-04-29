@@ -2,6 +2,7 @@ const express = require('express');
 const authController = require('../controllers/authController');
 const technicienController = require('../controllers/technicienController');
 const { uploadService } = require('../config/multer');
+const { roleMiddleware, authenticate } = require('../middleware/authMiddleware');
 const router = express.Router();
 
 // Routes pour l'authentification
@@ -14,6 +15,9 @@ router.post('/creer/technicien', technicienController.createTechnicien);
 // Routes pour récupérer tous les techniciens
 router.get('/all/techniciens', technicienController.getAlltechniciens);
 
+// Route pour modifier le rôle en technicien
+router.put('/techniciens/:id', technicienController.updateToTechnicien);
+
 // Route pour récupérer tous les utilisateurs
 router.get('/users', authController.getAllUsers);
 
@@ -22,6 +26,10 @@ router.get('/users/:id',authController.getUser);
 
 // Mettre à jours les infos d'un utilisateur
 router.put('/users/:id',authController.updateUser);
+
+// Routes pour bloquer/débloquer (protégées, réservées aux admins)
+router.put('/users/:id/block', authenticate, roleMiddleware(['admin']), authController.blockUser);
+router.put('/users/:id/unblock',authenticate, roleMiddleware(['admin']), authController.unblockUser);
 
 // Route pour mot de passe oublié
 router.post('/forgot-password', authController.forgotPassword);

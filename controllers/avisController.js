@@ -43,7 +43,7 @@ exports.getAllAvis = async (req, res) => {
 // Récupérer un avis par/pour un utilisateur donnée
 exports.getAvisById = async (req, res) => {
     try {
-        const avis = await Avis.findById(req.params.id).populate("client", "nom");
+        const avis = await Avis.findById(req.params.id).populate("client nom prenom");
         if (!avis) return res.status(404).json({ message: "Avis non trouvé" });
         res.json(avis);
     } catch (err) {

@@ -16,7 +16,11 @@ const userSchema = new mongoose.Schema({
     type: Number // l'ID entier d'Odoo
   },
   resetPasswordToken: String,
-  resetPasswordExpires: Date
+  resetPasswordExpires: Date,
+  bloque: {
+    type: Boolean,
+    default: false
+  }
 });
 
 // Hasher le mot de passe avant de sauvegarder l'utilisateur

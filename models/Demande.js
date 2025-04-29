@@ -71,6 +71,10 @@ const SchemaDemande = new mongoose.Schema({
     factureGeneree: {
         type: Boolean,
         default: false
+    },
+    adresse: {
+        type: String,
+        default: "en ligne"
     }
 });
 

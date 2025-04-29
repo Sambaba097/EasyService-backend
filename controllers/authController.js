@@ -81,6 +81,13 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: "Utilisateur non trouvé" });
     }
 
+    // Vérifier si l'utilisateur est bloqué
+    if (user.bloque) {
+      return res.status(403).json({ 
+        message: "Votre compte a été bloqué. Contactez l'administrateur." 
+      });
+    }
+
     // Vérifier le mot de passe
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
@@ -160,40 +167,158 @@ exports.getUser = async (req, res) => {
   }
 };
 
+
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    let updateData = { ...req.body };
+    const updateData = { ...req.body };
 
-    // Vérifier que l'ID est bien une chaîne valide
-    if (!req.params.id || typeof req.params.id !== "string") {
-      return res.status(400).json({ message: "ID de user invalide" });
-    }
-
-    // Vérifier le format de l'ID (24 caractères hexadécimaux)
+    // Vérifier que l'ID est valide
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res
-        .status(400)
-        .json({ message: "Format d'ID de user invalide" });
+      return res.status(400).json({ message: "ID utilisateur invalide" });
     }
 
-    const user = await User.findById(id);
-
-    if (!user)
+    const existingUser = await User.findById(id);
+    if (!existingUser) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
 
+    // Si c'était un technicien et que le rôle change
+    if (existingUser.role === 'technicien' && updateData.role && updateData.role !== 'technicien') {
+      // Sauvegarder les informations essentielles
+      const { prenom, nom, email, image } = existingUser;
+
+      // Supprimer l'ancien utilisateur
+      await User.findByIdAndDelete(id);
+
+      // Créer un nouvel utilisateur avec les nouvelles données + anciennes infos importantes
+      const newUser = await User.create({
+        ...updateData,
+        prenom,
+        nom,
+        email,
+        password: "passer",
+        image,
+      });
+
+      const odooId = await createOdooContact(newUser);
+      newUser.odooId = odooId;
+      await newUser.save();
+
+      // Renvoyer les infos du nouvel utilisateur
+      return res.status(200).json({
+        message: "Le rôle a été mis à jour. Un nouvel utilisateur a été créé.",
+        user: {
+          _id: new mongoose.Types.ObjectId(),
+          email: newUser.email,
+          role: newUser.role,
+          prenom: newUser.prenom,
+          nom: newUser.nom,
+          odooId: newUser.odooId,
+          bloque: newUser.bloque
+        }
+      });
+    }
+
+    // Mise à jour normale sinon
     const updatedUser = await User.findByIdAndUpdate(id, updateData, {
       new: true,
+      runValidators: true,
+    }).select('-password');
+
+    res.status(200).json({
+      message: "Utilisateur mis à jour avec succès",
+      user: updatedUser
     });
 
-    res.status(200).json("Mise à jours réussis");
-  } catch {
+  } catch (err) {
+    console.error("Erreur updateUser:", err);
     res.status(500).json({
-      message: "Erreur lors de la mise à jour des informations de l'utilisateur",
-      error: err.message,
+      message: "Erreur lors de la mise à jour",
+      error: err.message
     });
   }
 };
+
+// Fonction pour ajouter un attribut "bloque" à tous les utilisateurs
+// const addAttributeToAllUsers = async () => {
+//   try {
+//     const result = await User.updateMany(
+//       { bloque: { $exists: false } }, // s'assure qu'on ne modifie pas ceux qui l'ont déjà
+//       { $set: { bloque: false } }        // ou une autre valeur par défaut
+//     );
+//     console.log(`${result.modifiedCount} utilisateurs mis à jour.`);
+//   } catch (err) {
+//     console.error("Erreur de mise à jour :", err);
+//   }
+// };
+
+// addAttributeToAllUsers();
+
+// Bloquer un utilisateur
+exports.blockUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID utilisateur invalide" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      { bloque: true },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    res.status(200).json({ 
+      message: "Utilisateur bloqué avec succès",
+      user 
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      message: "Erreur lors du blocage de l'utilisateur",
+      error: err.message
+    });
+  }
+};
+
+// Débloquer un utilisateur
+exports.unblockUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID utilisateur invalide" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      { bloque: false },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    res.status(200).json({ 
+      message: "Utilisateur débloqué avec succès",
+      user 
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      message: "Erreur lors du déblocage de l'utilisateur",
+      error: err.message
+    });
+  }
+};
+
 
 const transporter = require('../config/email');
 exports.forgotPassword = async (req, res) => {
