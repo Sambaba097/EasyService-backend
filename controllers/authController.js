@@ -219,17 +219,28 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
 
     // 4. Envoyer l'email
-    const resetUrl = `http://ton-site.com/reset-password?token=${resetToken}`;
+    const resetUrl = `https://easyservice-29e5.onrender.com/?newPassToken=${resetToken}`;
 
     await transporter.sendMail({
       from: '"EASY SERVICE" <baelhadjisamba40@gmail.com>',
       to: user.email,
-      subject: 'Réinitialisation de mot de passe',
+      subject: "Réinitialisation de mot de passe",
       html: `
-        <p>Bonjour ${user.prenom},</p>
-        <p>Cliquez <a href="${resetUrl}">ici</a> pour réinitialiser votre mot de passe.</p>
-        <p>Ce lien expire dans 1 heure.</p>
-        <p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <p>Bonjour <span style="font-weight: bold;">${user.prenom}</span>,</p>
+          <p>Cliquez <a style="text-decoration: underline; color:#f97316" href="${resetUrl}">sur ce lien</a> pour réinitialiser votre mot de passe.</p>
+          <p>Ce lien expire dans <span style="font-weight:bold;">1 heure</span>.</p>
+          <p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
+        
+          <p>Si vous ne parvenez pas à cliquer sur le lien, copiez et collez l'URL suivante dans votre navigateur :</p>
+           <p>${resetUrl}</p>
+
+          <p>Ce message a été envoyé automatiquement, ne répondez pas.</p>
+          <p>Merci,</p>
+          <p>L'équipe <a href="https://easyservice-29e5.onrender.com" style="font-weight:bold; color:#f97316;">EASY SERVICE</a></p>
+          <img src="https://res.cloudinary.com/ds5zfxlhf/image/upload/v1745237611/Logo-EasyService.png" alt="Logo" style="margin-top: 10px;" />
+          
+        </div>
       `,
     });
 
