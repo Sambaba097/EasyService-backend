@@ -64,6 +64,20 @@ exports.createDemande = async (req, res) => {
       dateIntervention
     });
 
+    // Vérification de la date d’intervention
+    if (dateIntervention) {
+      const now = new Date();
+      const dateInterventionParsed = new Date(dateIntervention);
+
+      if (isNaN(dateInterventionParsed.getTime())) {
+        return res.status(400).json({ message: "Format de date d'intervention invalide." });
+      }
+
+      if (dateInterventionParsed < now) {
+        return res.status(400).json({ message: "La date d'intervention doit être ultérieure à la date actuelle." });
+      }
+    }
+
     const demandeEnregistree = await nouvelleDemande.save();
     res.status(201).json(demandeEnregistree);
   } catch (err) {
@@ -97,16 +111,33 @@ exports.getAllDemandes = async (req, res) => {
  
 //Mise à jour d'une demande
 exports.updateDemande = async (req, res) => {
+  console.log(req.body);
   try {
-    const demande = await Demande.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!demande) {
-      return res.status(404).json({ message: "Demande non trouvée." });
+    const demandeToUpdate = await Demande.findById(req.params.id);
+    if (!demandeToUpdate) {
+      return res.status(404).json({ message: "Demande introuvable." });
     }
+
+    const statutDemande = req.body.statut;
+    const etatDemande = req.body.etatExecution;
+
+    if (statutDemande === "annulee" || etatDemande === "annulee" && demandeToUpdate.technicien) {
+      const technicien = await User.findById(demandeToUpdate.technicien);
+      if (technicien) {
+        technicien.disponible = true;
+        await technicien.save();
+      }
+    }
+
+    const demande = await Demande.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(demande);
+
   } catch (err) {
     res.status(400).json({ message: err.message });
+    console.error(err);
   }
-};  
+};
+
 
 // Suppression d'une demande
 exports.deleteDemande = async (req, res) => {
@@ -145,17 +176,15 @@ exports.getDemandesByTechnicien = async (req, res) => {
 };
 
 
-// controllers/demandeController.js
-
-
-
 // Assigner une demande à un technicien
 exports.assignerDemande = async (req, res) => {
-  const { demandeId, technicienId } = req.body;
+  const { demandeId, technicienId, adminId } = req.body;
+
+  console.log(req.body);
 
   try {
     // Vérifier que le technicien est disponible
-    const technicien = await User.findById(req.body.technicienId);
+    const technicien = await User.findById(technicienId);
     if (!technicien || technicien.role !== 'technicien') {
       return res.status(404).json({ message: "Technicien introuvable." });
     }
@@ -164,8 +193,14 @@ exports.assignerDemande = async (req, res) => {
       return res.status(400).json({ message: "Ce technicien n'est pas disponible." });
     }
     const demandeExistante = await Demande.findOne({ technicien: technicienId, statut: { $ne: "terminee" } });
-    if (demandeExistante) {
+    if (demandeExistante && demandeExistante.etatExecution !== 'annulee' && demandeExistante.etatExecution !== 'terminee') {
       return res.status(400).json({ message: "Ce technicien a déjà une demande en cours." });
+    }
+
+    // Vérification pour l'admin
+    const admin = await User.findById(adminId);
+    if (!admin || admin.role !== 'admin') {
+      return res.status(404).json({ message: "Admin introuvable." });
     }
 
     // Mettre à jour la demande
@@ -175,6 +210,7 @@ exports.assignerDemande = async (req, res) => {
     }
 
     demande.technicien = technicienId;
+    demande.admin = adminId;
     demande.statut = 'acceptee'; // Mettre à jour le statut de la demande
     demande.etatExecution = 'non_commencee'; // Mettre à jour l'état d'exécution
     await demande.save();

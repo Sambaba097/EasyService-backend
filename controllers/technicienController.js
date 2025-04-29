@@ -27,7 +27,7 @@ exports.createTechnicien = async (req, res) => {
 exports.getAlltechniciens = async (req, res) => {
   try {
     // Récupérer tous les techniciens depuis la base de données
-    const techniciens = await Technicien.find({});
+    const techniciens = await Technicien.find({}).select("-password");
 
     // Renvoyer la liste des techniciens
     res.status(200).json({ message: 'Liste des techniciens récupérée avec succès', techniciens });

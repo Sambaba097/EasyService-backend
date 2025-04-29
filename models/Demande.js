@@ -58,6 +58,11 @@ const SchemaDemande = new mongoose.Schema({
         ref: "User",
         default: null // assigné par l’admin plus tard
     },
+    admin: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null
+    },
     etatExecution: {
         type: String,
         enum: ["non_commencee", "en_cours", "terminee", "annulee"],
