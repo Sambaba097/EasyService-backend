@@ -14,9 +14,9 @@ mongoose.connect(process.env.MONGO_URI, {
   console.log("✅ Connecté à MongoDB");
 
   try {
-    await User.findByIdAndUpdate("67f7dfa0fe74914bd02f74dd", { odooId: 8 }); // technicien
+    //await User.findByIdAndUpdate("67f7dfa0fe74914bd02f74dd", { odooId: 8 }); // technicien
 
-   /**  await Service.findByIdAndUpdate("67e33e1c01c1370b76fcd839", { odooId: 1 }); // client
+    await Service.findByIdAndUpdate("67e33e1c01c1370b76fcd839", { odooId: 1 }); // client
     await Service.findByIdAndUpdate("67e4757a9ec76e7117e0f0a6", { odooId: 2 }); // technicien
     await Service.findByIdAndUpdate("67e48c65eb628325d5ea67b1", { odooId: 3 }); // admin
     await Service.findByIdAndUpdate("67f90a49c00912ecb7b63aab", { odooId: 4 }); // service
@@ -30,7 +30,7 @@ mongoose.connect(process.env.MONGO_URI, {
     await Service.findByIdAndUpdate("67f9541f5e7925b59953cfd2", { odooId: 12 }); // service 
     await Service.findByIdAndUpdate("67f9a865da8ed39fb15dc200", { odooId: 13 }); // service 
     await Service.findByIdAndUpdate("67f9aab1da8ed39fb15dc211", { odooId: 14 }); // service
-    await Service.findByIdAndUpdate("67f9ad02da8ed39fb15dc227", { odooId: 15 }); // service **/
+    await Service.findByIdAndUpdate("67f9ad02da8ed39fb15dc227", { odooId: 15 }); // service 
 
    
     console.log("✅ odooId mis à jour !");

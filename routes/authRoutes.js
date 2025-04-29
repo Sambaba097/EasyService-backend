@@ -1,7 +1,7 @@
 const express = require('express');
 const authController = require('../controllers/authController');
 const technicienController = require('../controllers/technicienController');
-
+const { uploadService } = require('../config/multer');
 const router = express.Router();
 
 // Routes pour l'authentification
@@ -27,5 +27,8 @@ router.put('/users/:id',authController.updateUser);
 router.post('/forgot-password', authController.forgotPassword);
 // Route pour réinitialiser le mot de passe
 router.post('/reset-password', authController.resetPassword);
+// ajouter un image de profil
+router.post('/profil/image', authController.updateProfilePicture, uploadService.single('image'));
+
 
 module.exports = router;

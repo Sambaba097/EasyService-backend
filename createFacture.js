@@ -7,7 +7,7 @@ mongoose.connect(process.env.MONGO_URI)
     .then(async () => {
         const nouvelleFacture = new Facture({
             montant: 5000,
-            service: "67e33e1c01c1370b76fcd839",
+            service: "67f9aab1da8ed39fb15dc211",
             technicien: "67dcc098a6e0285dc7abaed2",
             client: "680ccb0eba14d3692ab53945",
             admin: "67da88347e9d8aefcaa19120",
