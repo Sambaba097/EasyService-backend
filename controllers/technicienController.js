@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Technicien = require('../models/Technicien');
 const User = require('../models/User');
+const Demande = require('../models/Demande');
 const { createOdooContact } = require('../utils/odoo');
 
 exports.createTechnicien = async (req, res) => {
@@ -66,6 +67,10 @@ exports.updateToTechnicien = async (req, res) => {
       return res.status(404).json({ message: 'Utilisateur non trouvé' });
     }
 
+    // Suprimer tous les demandes de l'utilisateur
+    const demandes = await Demande.find({ user: id });
+    await Demande.deleteMany({ user: id });
+
     // 2. Supprimer l'utilisateur
     await User.findByIdAndDelete(id);
     
@@ -85,8 +90,8 @@ exports.updateToTechnicien = async (req, res) => {
     });
 
     const odooId = await createOdooContact(technicien);
-          technicien.odooId = odooId;
-          await technicien.save();
+    technicien.odooId = odooId;
+    await technicien.save();
 
     res.status(200).json({
       message: 'Utilisateur promu en technicien avec succès',

@@ -168,12 +168,14 @@ exports.getUser = async (req, res) => {
 };
 
 
+const Demande = require("../models/Demande");
+const Avis = require("../models/Avis");
+
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = { ...req.body };
 
-    // Vérifier que l'ID est valide
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "ID utilisateur invalide" });
     }
@@ -183,48 +185,53 @@ exports.updateUser = async (req, res) => {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
 
-    // Si c'était un technicien et que le rôle change
-    if (existingUser.role === 'technicien' && updateData.role && updateData.role !== 'technicien') {
-      // Sauvegarder les informations essentielles
+    const roleChanged = existingUser.role !== updateData.role;
+
+    if (roleChanged) {
       const { prenom, nom, email, image } = existingUser;
 
-      // Supprimer l'ancien utilisateur
+      // 1. Supprimer les demandes et avis liés à l'utilisateur
+      await Demande.deleteMany({ utilisateur: existingUser._id });
+      await Avis.deleteMany({ utilisateur: existingUser._id });
+
+      // 2. Supprimer l'utilisateur
       await User.findByIdAndDelete(id);
 
-      // Créer un nouvel utilisateur avec les nouvelles données + anciennes infos importantes
-      const newUser = await User.create({
+      // 3. Créer un nouvel utilisateur avec les nouvelles infos
+      const newUser = new User({
         ...updateData,
         prenom,
         nom,
         email,
         password: "passer",
-        image,
+        image
       });
 
+      await newUser.save();
+
+      // 4. Créer un nouveau contact Odoo
       const odooId = await createOdooContact(newUser);
       newUser.odooId = odooId;
       await newUser.save();
 
-      // Renvoyer les infos du nouvel utilisateur
       return res.status(200).json({
-        message: "Le rôle a été mis à jour. Un nouvel utilisateur a été créé.",
+        message: "Rôle modifié. Nouvel utilisateur créé avec contact Odoo.",
         user: {
-          _id: new mongoose.Types.ObjectId(),
+          _id: newUser._id,
           email: newUser.email,
           role: newUser.role,
           prenom: newUser.prenom,
           nom: newUser.nom,
           odooId: newUser.odooId,
-          bloque: newUser.bloque
         }
       });
     }
 
-    // Mise à jour normale sinon
+    // Mise à jour classique si pas de changement de rôle
     const updatedUser = await User.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
-    }).select('-password');
+    }).select("-password");
 
     res.status(200).json({
       message: "Utilisateur mis à jour avec succès",
@@ -239,6 +246,7 @@ exports.updateUser = async (req, res) => {
     });
   }
 };
+
 
 // Fonction pour ajouter un attribut "bloque" à tous les utilisateurs
 // const addAttributeToAllUsers = async () => {

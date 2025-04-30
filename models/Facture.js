@@ -57,6 +57,8 @@ SchemaFacture.pre('save', async function (next) {
             serviceId: service?.odooId
         };
 
+        console.log(idsOdoo);
+
         if (!idsOdoo.clientId || !idsOdoo.technicienId || !idsOdoo.adminId) {
             return next(new Error('Un ou plusieurs odooId sont manquants.'));
         }
