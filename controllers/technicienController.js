@@ -1,10 +1,24 @@
 const mongoose = require('mongoose');
 const Technicien = require('../models/Technicien');
 const User = require('../models/User');
+const { createOdooContact } = require('../utils/odoo');
 
 exports.createTechnicien = async (req, res) => {
     try {
       const { prenom, nom, telephone, metier, categorie, email, password  } = req.body;
+
+      const existingTechnicien = await Technicien.findOne({ email });
+      if (existingTechnicien) {
+        return res.status(400).json({ message: "Cet email est deja utilisé." });
+      }
+
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: "Cet email est deja utilisé." });
+      }
+
+      // 👉 Appel à Odoo pour créer un contact
+      const odooId = await createOdooContact({ prenom, nom, email, password, role: 'technicien' });
       
       const technicien = new Technicien({
         prenom,
@@ -13,16 +27,18 @@ exports.createTechnicien = async (req, res) => {
         metier,
         categorie: categorie,
         email,
-        password, 
+        password,
+        odooId: odooId, 
         role: 'technicien' 
       });
-  
+
       await technicien.save();
-      res.status(201).json({message: 'Technicien crée avec succés', technicien});
-    } catch (err) {
-      res.status(400).json({ error: err.message });
-    }
-  };
+      
+          res.status(201).json({message: 'Technicien crée avec succés', technicien});
+        } catch (err) {
+          res.status(400).json({ error: err.message });
+        }
+      };
 
 // Récupérer tous les Techniciens
 exports.getAlltechniciens = async (req, res) => {
@@ -64,10 +80,13 @@ exports.updateToTechnicien = async (req, res) => {
       metier,
       categorie,
       role: 'technicien',
-      odooId: user.odooId,
       createdAt: user.createdAt, // Conserver la date de création originale
       updatedAt: new Date() // Mettre à jour la date de modification
     });
+
+    const odooId = await createOdooContact(technicien);
+          technicien.odooId = odooId;
+          await technicien.save();
 
     res.status(200).json({
       message: 'Utilisateur promu en technicien avec succès',
