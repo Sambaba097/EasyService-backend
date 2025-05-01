@@ -194,8 +194,6 @@ exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = { ...req.body };
-    console.log(req.body);
-    console.log(req.params);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "ID utilisateur invalide" });
