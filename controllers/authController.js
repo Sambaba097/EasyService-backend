@@ -194,6 +194,8 @@ exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = { ...req.body };
+    console.log(req.body);
+    console.log(req.params);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "ID utilisateur invalide" });
@@ -250,11 +252,11 @@ exports.updateUser = async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
-    }).select("-password");
+    });
 
     res.status(200).json({
       message: "Utilisateur mis à jour avec succès",
-      user: updatedUser
+      user: updatedUser.select("-password")
     });
 
   } catch (err) {

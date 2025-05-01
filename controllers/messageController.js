@@ -274,28 +274,28 @@ exports.getSentMessages = async (req, res) => {
 
 
 // Récupérer les messages non lus (version multi-destinataires)
-exports.getUnreadCount = async (req, res) => {
-  try {
+// exports.getUnreadCount = async (req, res) => {
+//   try {
 
-    if (!req.user || !req.user.email) {
-      return res.status(401).json({ success: false, error: 'Authentification requise' });
-    }
+//     if (!req.user || !req.user.email) {
+//       return res.status(401).json({ success: false, error: 'Authentification requise' });
+//     }
     
-    const userEmail = req.user.email;
+//     const userEmail = req.user.email;
     
-    const count = await Message.countDocuments({
-      'destinataires.email': userEmail,
-      'destinataires.lu': false
-    });
+//     const count = await Message.countDocuments({
+//       'destinataires.email': userEmail,
+//       'destinataires.lu': false
+//     });
 
-    res.json({ 
-      success: true, 
-      data: { count } 
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-};
+//     res.json({ 
+//       success: true, 
+//       data: { count } 
+//     });
+//   } catch (err) {
+//     res.status(500).json({ success: false, error: err.message });
+//   }
+// };
 
 
 // Messages pour l'admin (tous les messages)
@@ -386,18 +386,20 @@ exports.deleteMessage = async (req, res) => {
 };
 
 // Récupérer les messages non lus (pour notifications)
-// exports.getUnreadCount = async (req, res) => {
-//   try {
-//     const count = await Message.countDocuments({
-//       destinataire: req.user.id,
-//       lu: false
-//     });
+exports.getUnreadCount = async (req, res) => {
+  try {
+    console.log(req.user);
+    console.log(req.body);
+    const count = await Message.countDocuments({
+      "destinataires.email": req.user.email,
+      "destinataires.lu": false
+    });
 
-//     res.json({ 
-//       success: true, 
-//       data: { count } 
-//     });
-//   } catch (err) {
-//     res.status(500).json({ success: false, error: err.message });
-//   }
-// };
+    res.json({ 
+      success: true, 
+      data: { count } 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
