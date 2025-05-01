@@ -3,7 +3,7 @@ const Avis = require("../models/Avis");
 // Soumettre un avis (Réservé aux clients)
 exports.creerAvis = async (req, res) => {
     try {
-        const { note, commentaire, technicien, service } = req.body;
+        const { note, commentaire, technicien, service, demande } = req.body;
         const client = req.user.id; // Récupération automatique de l'ID du client
 
         // Vérifier que l'utilisateur est bien un client
@@ -11,8 +11,8 @@ exports.creerAvis = async (req, res) => {
             return res.status(403).json({ message: "Seuls les clients peuvent soumettre un avis." });
         }
         // verifier que le technicien et le service sont bien fournis
-        if (!technicien || !service) {
-            return res.status(400).json({ message: "Le technicien et le service sont obligatoires." });
+        if (!technicien || !service || !demande) {
+            return res.status(400).json({ message: "Le technicien, la demande et le service sont obligatoires." });
         }
 
         const nouvelAvis = new Avis({
@@ -20,7 +20,8 @@ exports.creerAvis = async (req, res) => {
             commentaire,
             client,
             technicien,
-            service
+            service,
+            demande
         });
 
         const avisEnregistre = await nouvelAvis.save();
@@ -43,7 +44,7 @@ exports.getAllAvis = async (req, res) => {
 // Récupérer un avis par/pour un utilisateur donnée
 exports.getAvisById = async (req, res) => {
     try {
-        const avis = await Avis.findById(req.params.id).populate("client nom prenom");
+        const avis = await Avis.findById(req.params.id).populate("client ", "prenom", "nom");
         if (!avis) return res.status(404).json({ message: "Avis non trouvé" });
         res.json(avis);
     } catch (err) {

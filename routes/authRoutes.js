@@ -21,6 +21,9 @@ router.put('/techniciens/:id', technicienController.updateToTechnicien);
 // Route pour récupérer tous les utilisateurs
 router.get('/users', authController.getAllUsers);
 
+// Route pour récupérer l'utilisateur connecté
+router.get('/users/me', authenticate, authController.getCurrentUser);
+
 // Route pour récupérer les infos d'un utilisateur
 router.get('/users/:id',authController.getUser);
 

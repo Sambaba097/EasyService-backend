@@ -167,6 +167,25 @@ exports.getUser = async (req, res) => {
   }
 };
 
+exports.getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    res.status(200).json({
+      message: "Utilisateur connecté récupéré avec succès",
+      user,
+    });
+  } catch (err) {
+    console.error("Erreur dans getCurrentUser :", err);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+
 
 const Demande = require("../models/Demande");
 const Avis = require("../models/Avis");

@@ -30,6 +30,11 @@ const SchemaAvis = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref: "technicien",
         required: true
+    },
+    demande:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref: "Demande",
+        required: true
     }
 })
 
