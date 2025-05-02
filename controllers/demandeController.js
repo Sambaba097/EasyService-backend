@@ -312,3 +312,29 @@ exports.terminerDemande = async (req, res) => {
     res.status(500).json({ message: "Erreur lors de la finalisation.", error: err.message });
   }
 };
+
+// Suppression des demandes sans ID client
+// exports.deleteDemandesSansClient = async (req, res) => {
+//   try {
+//     // Supprimer toutes les demandes où le champ client est null, undefined ou vide
+//     const result = await Demande.deleteMany({
+//       $or: [
+//         { client: null },
+//         { client: undefined },
+//         { client: { $exists: false } },
+//         { client: "" }
+//       ]
+//     });
+
+//     res.json({
+//       message: `${result.deletedCount} demande(s) sans client supprimée(s) avec succès.`,
+//       deletedCount: result.deletedCount
+//     });
+
+//   } catch (err) {
+//     res.status(500).json({ 
+//       message: "Erreur lors de la suppression des demandes sans client",
+//       error: err.message 
+//     });
+//   }
+// };
