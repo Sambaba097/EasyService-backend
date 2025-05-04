@@ -34,17 +34,27 @@ exports.creerAvis = async (req, res) => {
 // Récupérer tous les avis
 exports.getAllAvis = async (req, res) => {
     try {
-        const avis = await Avis.find().populate("client", "nom");
+        const avis = await Avis.find().populate([
+            { path: "client"},
+            { path: "technicien"},
+            { path: "service"},
+            { path: "demande" }
+          ]);
+          
         res.json(avis);
     } catch (err) {
         res.status(500).json({ message: err.message });
+        console.log(err);
     }
 };
 
 // Récupérer un avis par/pour un utilisateur donnée
 exports.getAvisById = async (req, res) => {
     try {
-        const avis = await Avis.findById(req.params.id).populate("client ", "prenom", "nom");
+        const avis = await Avis.findById(req.params.id).populate({
+            path: "client",
+            select: "prenom nom"
+          });
         if (!avis) return res.status(404).json({ message: "Avis non trouvé" });
         res.json(avis);
     } catch (err) {

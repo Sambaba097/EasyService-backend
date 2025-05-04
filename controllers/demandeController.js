@@ -89,7 +89,12 @@ exports.createDemande = async (req, res) => {
 // Récupération d'une demande par son ID
 exports.getDemandeById = async (req, res) => {
   try {
-    const demande = await Demande.findById(req.params.id).populate("service client technicien");
+    const demande = await Demande.findById(req.params.id).populate([
+      { path: "service"},
+      { path: "client"},
+      { path: "technicien"},
+      { path: "admin"}
+    ]);
     if (!demande) {
       return res.status(404).json({ message: "Demande non trouvée." });
     }
@@ -102,7 +107,12 @@ exports.getDemandeById = async (req, res) => {
 // Récupération de toutes les demandes
 exports.getAllDemandes = async (req, res) => {
   try {
-    const demandes = await Demande.find().populate("service client technicien");
+    const demandes = await Demande.find().populate([
+      { path: "service"},
+      { path: "client"},
+      { path: "technicien"},
+      { path: "admin"}
+    ]);
     res.json(demandes);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -111,7 +121,6 @@ exports.getAllDemandes = async (req, res) => {
  
 //Mise à jour d'une demande
 exports.updateDemande = async (req, res) => {
-  console.log(req.body);
   try {
     const demandeToUpdate = await Demande.findById(req.params.id);
     if (!demandeToUpdate) {

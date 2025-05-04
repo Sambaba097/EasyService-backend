@@ -4,6 +4,7 @@ const technicienController = require('../controllers/technicienController');
 const { uploadService } = require('../config/multer');
 const { roleMiddleware, authenticate } = require('../middleware/authMiddleware');
 const router = express.Router();
+const { uploadProfile } = require("../config/multer"); 
 
 // Routes pour l'authentification
 router.post('/register', authController.register);
@@ -27,8 +28,11 @@ router.get('/users/me', authenticate, authController.getCurrentUser);
 // Route pour récupérer les infos d'un utilisateur
 router.get('/users/:id',authController.getUser);
 
-// Mettre à jours les infos d'un utilisateur
-router.put('/users/:id',authController.updateUser);
+// Mettre à jours les infos d'un utilisateur depuis le profil
+router.put('/users/:id', uploadProfile.single('image'), authController.updateUserProfile);
+
+// Mise à jours pour le changement de rôles
+router.put('/users/:id/change-role', authenticate, roleMiddleware(['admin']), authController.changeUserRole);
 
 // Routes pour bloquer/débloquer (protégées, réservées aux admins)
 router.put('/users/:id/block', authenticate, roleMiddleware(['admin']), authController.blockUser);

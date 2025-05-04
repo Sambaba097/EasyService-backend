@@ -190,11 +190,130 @@ exports.getCurrentUser = async (req, res) => {
 const Demande = require("../models/Demande");
 const Avis = require("../models/Avis");
 
-exports.updateUser = async (req, res) => {
+// exports.updateUser = async (req, res) => {
+//   console.log(req.body);
+//   try {
+//     const { id } = req.params;
+//     const updateData = { ...req.body };
+
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//       return res.status(400).json({ message: "ID utilisateur invalide" });
+//     }
+
+//     const existingUser = await User.findById(id);
+//     if (!existingUser) {
+//       return res.status(404).json({ message: "Utilisateur non trouvé" });
+//     }
+
+//     const roleChanged = existingUser.role !== updateData.role;
+
+//     if (roleChanged && updateData !== "" && updateData.role !== "" && updateData !== null) {
+//       const { prenom, nom, email, image } = existingUser;
+
+//       // 1. Supprimer les demandes et avis liés à l'utilisateur
+//       await Demande.deleteMany({ utilisateur: existingUser._id });
+//       await Avis.deleteMany({ utilisateur: existingUser._id });
+
+//       // 2. Supprimer l'utilisateur
+//       await User.findByIdAndDelete(id);
+
+//       // 3. Créer un nouvel utilisateur avec les nouvelles infos
+//       const newUser = new User({
+//         ...updateData,
+//         prenom,
+//         nom,
+//         email,
+//         password: "passer",
+//         image
+//       });
+
+//       await newUser.save();
+
+//       // 4. Créer un nouveau contact Odoo
+//       const odooId = await createOdooContact(newUser);
+//       newUser.odooId = odooId;
+//       await newUser.save();
+
+//       return res.status(200).json({
+//         message: "Rôle modifié. Nouvel utilisateur créé avec contact Odoo.",
+//         user: {
+//           _id: newUser._id,
+//           email: newUser.email,
+//           role: newUser.role,
+//           prenom: newUser.prenom,
+//           nom: newUser.nom,
+//           odooId: newUser.odooId,
+//         }
+//       });
+//     }
+
+//     // Mise à jour classique si pas de changement de rôle
+//     const updatedUser = await User.findByIdAndUpdate(id, updateData, {
+//       new: true,
+//       runValidators: true,
+//     });
+
+//     res.status(200).json({
+//       message: "Utilisateur mis à jour avec succès",
+//       user: updatedUser.select("-password")
+//     });
+
+//   } catch (err) {
+//     console.error("Erreur updateUser:", err);
+//     res.status(500).json({
+//       message: "Erreur lors de la mise à jour",
+//       error: err.message
+//     });
+//   }
+// };
+
+// Mise à jour normale du profil
+const multer = require('multer');
+const upload = multer({ limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB max
+
+exports.updateUserProfile = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = { ...req.body };
+    const updateData = req.body; // Pour les champs texte
+    const file = req.file; // Pour le fichier image
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID utilisateur invalide" });
+    }
+
+    // Si un fichier image est envoyé
+    if (file) {
+      // Upload vers Cloudinary ou stockage local
+      const imageUrl = await uploadToCloudinary(file.buffer, "Profiles");
+      updateData.image = { url: imageUrl };
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    res.status(200).json({
+      message: "Profil mis à jour",
+      user: updatedUser
+    });
+
+  } catch (err) {
+    console.error("Erreur updateUserProfile:", err);
+    res.status(500).json({ 
+      message: "Erreur lors de la mise à jour",
+      error: err.message
+    });
+  }
+};
+// Changement de rôle spécial
+exports.changeUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newRole } = req.body;
+
+    // Validation
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "ID utilisateur invalide" });
     }
@@ -204,63 +323,49 @@ exports.updateUser = async (req, res) => {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
 
-    const roleChanged = existingUser.role !== updateData.role;
+    // 1. Sauvegarder les données nécessaires
+    const { prenom, nom, email, image } = existingUser;
 
-    if (roleChanged) {
-      const { prenom, nom, email, image } = existingUser;
+    // 2. Supprimer les dépendances
+    await Demande.deleteMany({ utilisateur: id });
+    await Avis.deleteMany({ utilisateur: id });
 
-      // 1. Supprimer les demandes et avis liés à l'utilisateur
-      await Demande.deleteMany({ utilisateur: existingUser._id });
-      await Avis.deleteMany({ utilisateur: existingUser._id });
+    // 3. Supprimer l'ancien utilisateur
+    await User.findByIdAndDelete(id);
 
-      // 2. Supprimer l'utilisateur
-      await User.findByIdAndDelete(id);
-
-      // 3. Créer un nouvel utilisateur avec les nouvelles infos
-      const newUser = new User({
-        ...updateData,
-        prenom,
-        nom,
-        email,
-        password: "passer",
-        image
-      });
-
-      await newUser.save();
-
-      // 4. Créer un nouveau contact Odoo
-      const odooId = await createOdooContact(newUser);
-      newUser.odooId = odooId;
-      await newUser.save();
-
-      return res.status(200).json({
-        message: "Rôle modifié. Nouvel utilisateur créé avec contact Odoo.",
-        user: {
-          _id: newUser._id,
-          email: newUser.email,
-          role: newUser.role,
-          prenom: newUser.prenom,
-          nom: newUser.nom,
-          odooId: newUser.odooId,
-        }
-      });
-    }
-
-    // Mise à jour classique si pas de changement de rôle
-    const updatedUser = await User.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
+    // 4. Créer le nouvel utilisateur
+    const newUser = new User({
+      prenom,
+      nom,
+      email,
+      password: "passer",
+      image,
+      role: newRole
     });
 
+    await newUser.save();
+
+    // 5. Recréer le contact Odoo si nécessaire
+    const odooId = await createOdooContact(newUser);
+    newUser.odooId = odooId;
+    await newUser.save();
+
     res.status(200).json({
-      message: "Utilisateur mis à jour avec succès",
-      user: updatedUser.select("-password")
+      message: "Rôle changé avec succès. Nouvel utilisateur créé.",
+      user: {
+        _id: newUser._id,
+        email: newUser.email,
+        role: newUser.role,
+        prenom: newUser.prenom,
+        nom: newUser.nom,
+        odooId: newUser.odooId,
+      }
     });
 
   } catch (err) {
-    console.error("Erreur updateUser:", err);
+    console.error("Erreur changeUserRole:", err);
     res.status(500).json({
-      message: "Erreur lors de la mise à jour",
+      message: "Erreur lors du changement de rôle",
       error: err.message
     });
   }
