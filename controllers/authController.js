@@ -372,12 +372,27 @@ exports.changeUserRole = async (req, res) => {
 };
 
 
-// Fonction pour ajouter un attribut "bloque" à tous les utilisateurs
+// Fonction pour ajouter un attribut "odooId" à tous les utilisateurs
 // const addAttributeToAllUsers = async () => {
 //   try {
 //     const result = await User.updateMany(
 //       { odooId: { $exists: false } }, // s'assure qu'on ne modifie pas ceux qui l'ont déjà
-//       { $set: { bloque: false } }        // ou une autre valeur par défaut
+//       { $set: { odooId: false } }        // ou une autre valeur par défaut
+//     );
+//     console.log(${result.modifiedCount} utilisateurs mis à jour.);
+//   } catch (err) {
+//     console.error("Erreur de mise à jour :", err);
+//   }
+// };
+
+// addAttributeToAllUsers();
+
+// Fonction pour supprimer un attribut "odooId" à tous les utilisateurs
+// const addAttributeToAllUsers = async () => {
+//   try {
+//     const result = await User.updateMany(
+//       { odooId: { $exists: true } }, // s'assure qu'on ne modifie pas ceux qui l'ont déjà
+//       { $unset: { odooId: "" } }        // ou une autre valeur par défaut
 //     );
 //     console.log(`${result.modifiedCount} utilisateurs mis à jour.`);
 //   } catch (err) {

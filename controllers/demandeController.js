@@ -243,6 +243,9 @@ exports.commencerDemande = async (req, res) => {
     const { demandeId } = req.params;
     const { dateDebut } = req.body; // Récupération de la date depuis le corps
 
+    console.log(req.params);
+    console.log(req.body);
+
     // Vérification des données
     if (!dateDebut) {
       return res.status(400).json({ message: "La date de début est requise." });

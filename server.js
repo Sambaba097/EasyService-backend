@@ -13,7 +13,7 @@ const corsOptions = {
       "http://localhost:5173",
       "https://easyservice-29e5.onrender.com",
       "https://easy-service-frontend-7jhw.vercel.app", // Nouveau lien et en production
-      "https://easy-servicefrontend.vercel.app",
+      "https://easy-service-frontend.vercel.app",
     ],
     credentials: true,
     allowedHeaders: [
