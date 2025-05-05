@@ -187,8 +187,8 @@ exports.getCurrentUser = async (req, res) => {
 
 
 
-const Demande = require("../models/Demande");
-const Avis = require("../models/Avis");
+// const Demande = require("../models/Demande");
+// const Avis = require("../models/Avis");
 
 // exports.updateUser = async (req, res) => {
 //   console.log(req.body);

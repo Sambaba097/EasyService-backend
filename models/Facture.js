@@ -18,6 +18,34 @@ const SchemaFacture = new mongoose.Schema({
 });
 
 // Fonction pour se connecter à Odoo
+
+// async function loginOdoo() {
+//     try {
+//         const response = await axios.post(`${process.env.ODOO_URL}/jsonrpc`, {
+//             jsonrpc: '2.0',
+//             method: 'call',
+//             params: {
+//                 service: 'common',
+//                 method: 'login',
+//                 args: [process.env.ODOO_DB, process.env.ODOO_USER, process.env.ODOO_PASS]
+//             },
+//             id: 1
+//         });
+
+//         const uid = response.data.result;
+//         if (!uid) {
+//             console.error("❌ Réponse Odoo:", JSON.stringify(response.data, null, 2));
+//             throw new Error("Échec de l'authentification avec Odoo.");
+//         }
+
+//         return uid;
+
+//     } catch (err) {
+//         console.error("💥 Erreur lors de la connexion à Odoo :", err.response?.data || err.message);
+//         throw err;
+//     }
+// }
+
 async function loginOdoo() {
     const response = await axios.post(`${process.env.ODOO_URL}/jsonrpc`, {
         jsonrpc: '2.0',
@@ -216,6 +244,89 @@ SchemaFacture.pre('save', async function (next) {
         }
 
         this.odooInvoiceId = odooResponse.data.result;
+        // Appel de la méthode action_post pour valider la facture
+await axios.post(`${process.env.ODOO_URL}/jsonrpc`, {
+    jsonrpc: '2.0',
+    method: 'call',
+    params: {
+        service: 'object',
+        method: 'execute_kw',
+        args: [
+            process.env.ODOO_DB,
+            uid,
+            process.env.ODOO_PASS,
+            'account.move',
+            'action_post',
+            [[this.odooInvoiceId]]  // Note le double tableau
+        ]
+    },
+    id: 7
+});
+
+console.log("✅ Facture validée automatiquement dans Odoo.");
+// Enregistrer le paiement automatiquement
+// 1. Créer le paiement
+
+const paiementResponse = await axios.post(`${process.env.ODOO_URL}/jsonrpc`, {
+    jsonrpc: '2.0',
+    method: 'call',
+    params: {
+        service: 'object',
+        method: 'execute_kw',
+        args: [
+            process.env.ODOO_DB,
+            uid,
+            process.env.ODOO_PASS,
+            'account.payment',
+            'create',
+            [{
+                partner_type: 'customer',
+                payment_type: 'inbound',
+                partner_id: partnerId,
+                amount: this.montant,
+                journal_id: 12,
+                payment_method_id: 1,
+                //payment_date: this.dateEmission,
+                invoice_ids: [[6, false, [this.odooInvoiceId]]],
+            }]
+        ]
+    },
+    id: 8
+});
+
+if (!paiementResponse.data.result) {
+    console.error("❌ Erreur lors de la création du paiement :", paiementResponse.data.error);
+    throw new Error("La création du paiement a échoué.");
+}
+
+const paymentId = paiementResponse.data.result;
+console.log("💰 Paiement créé dans Odoo avec l'ID :", paymentId);
+
+
+// 2. Poster (valider) le paiement
+await axios.post(`${process.env.ODOO_URL}/jsonrpc`, {
+    jsonrpc: '2.0',
+    method: 'call',
+    params: {
+        service: 'object',
+        method: 'execute_kw',
+        args: [
+            process.env.ODOO_DB,
+            uid,
+            process.env.ODOO_PASS,
+            'account.payment',
+            'action_post',
+            [[paymentId]]
+        ]
+    },
+    id: 9
+});
+
+console.log("✅ Paiement validé dans Odoo.");
+
+
+
+
         next();
 
     } catch (error) {
