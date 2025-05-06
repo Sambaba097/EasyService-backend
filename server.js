@@ -14,6 +14,7 @@ const corsOptions = {
       "https://easyservice-29e5.onrender.com",
       "https://easy-service-frontend-7jhw.vercel.app", // Nouveau lien et en production
       "https://easy-service-frontend.vercel.app",
+      "https://easyservice-frontend-l01x.onrender.com",
     ],
     credentials: true,
     allowedHeaders: [
