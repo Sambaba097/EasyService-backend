@@ -159,7 +159,7 @@ SchemaFacture.pre('save', async function (next) {
                         'res.partner',
                         'create',
                         [{
-                            name: client.nom,
+                            name: client.prenom + ' ' + client.nom,
                             email: client.email,
                             phone: client.telephone,
                         }]
@@ -205,7 +205,7 @@ SchemaFacture.pre('save', async function (next) {
             partner_id: partnerId,
             invoice_date: this.dateEmission,
             x_technicien_id: idsOdoo.technicienId,
-            invoice_user_id: idsOdoo.adminId,
+            // invoice_user_id: idsOdoo.adminId,
             x_service_id: idsOdoo.serviceId,
             ref: this.numeroFacture,
             invoice_line_ids: [[0, 0, {
