@@ -91,9 +91,9 @@ exports.getDemandeById = async (req, res) => {
   try {
     const demande = await Demande.findById(req.params.id).populate([
       { path: "service"},
-      { path: "client"},
-      { path: "technicien"},
-      { path: "admin"}
+      { path: "client", select: "-password"},
+      { path: "technicien", select: "-password"},
+      { path: "admin", select: "-password"}
     ]);
     if (!demande) {
       return res.status(404).json({ message: "Demande non trouvée." });
