@@ -588,7 +588,7 @@ exports.forgotPassword = async (req, res) => {
 
           <p>Ce message a été envoyé automatiquement, ne répondez pas.</p>
           <p>Merci,</p>
-          <p>L'équipe <a href="https://easyservice-29e5.onrender.com" style="font-weight:bold; color:#f97316;">EASY SERVICE</a></p>
+          <p>L'équipe <a href="https://easyservice-zhmc.onrender.com" style="font-weight:bold; color:#f97316;">EASY SERVICE</a></p>
           <img src="https://res.cloudinary.com/ds5zfxlhf/image/upload/v1745237611/Logo-EasyService.png" alt="Logo" style="margin-top: 10px;" />
           
         </div>
