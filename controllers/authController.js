@@ -307,11 +307,14 @@ exports.updateUserProfile = async (req, res) => {
     });
   }
 };
+
+const Avis = require("../models/Avis");
 // Changement de rôle spécial
 exports.changeUserRole = async (req, res) => {
   try {
     const { id } = req.params;
     const { newRole } = req.body;
+    console.log(req.body);
 
     // Validation
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -327,8 +330,10 @@ exports.changeUserRole = async (req, res) => {
     const { prenom, nom, email, image } = existingUser;
 
     // 2. Supprimer les dépendances
-    await Demande.deleteMany({ utilisateur: id });
-    await Avis.deleteMany({ utilisateur: id });
+    if(Demande.find({ utilisateur: id }).length > 0 || Avis.find({ utilisateur: id }).length > 0) {
+      await Demande.deleteMany({ utilisateur: id });
+      await Avis.deleteMany({ utilisateur: id });
+    }
 
     // 3. Supprimer l'ancien utilisateur
     await User.findByIdAndDelete(id);
@@ -547,6 +552,7 @@ exports.unblockUser = async (req, res) => {
 
 
 const transporter = require('../config/email');
+const Demande = require("../models/Demande");
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
