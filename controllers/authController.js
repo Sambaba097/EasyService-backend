@@ -570,7 +570,7 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
 
     // 4. Envoyer l'email
-    const resetUrl = `https://easyservice-29e5.onrender.com/?newPassToken=${resetToken}`;
+    const resetUrl = `https://easyservice-zhmc.onrender.com/?newPassToken=${resetToken}`;
 
     await transporter.sendMail({
       from: '"EASY SERVICE" <baelhadjisamba40@gmail.com>',
