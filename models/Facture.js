@@ -159,7 +159,11 @@ SchemaFacture.pre('save', async function (next) {
                         'res.partner',
                         'create',
                         [{
-                            name: client.nom,
+                            // changement
+                        //     firstname: client.prenom,
+                        // lastname: client.nom,
+                            name: `Client : ${client.prenom} ${client.nom}`,
+                            //name: client.nom,
                             email: client.email,
                             phone: client.telephone,
                         }]
@@ -205,11 +209,13 @@ SchemaFacture.pre('save', async function (next) {
             partner_id: partnerId,
             invoice_date: this.dateEmission,
             x_technicien_id: idsOdoo.technicienId,
-            invoice_user_id: idsOdoo.adminId,
+            // invoice_user_id: idsOdoo.adminId,
             x_service_id: idsOdoo.serviceId,
             ref: this.numeroFacture,
             invoice_line_ids: [[0, 0, {
-                name: `${service.nom} - Client: ${clientName}`,
+              //  name: `${service.nom} - Client: ${clientName}`,
+                name: service.nom,
+
                 quantity: 1,
                 price_unit: this.montant,
                 account_id: service.account_id || 973,
