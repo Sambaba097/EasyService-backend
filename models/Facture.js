@@ -159,11 +159,8 @@ SchemaFacture.pre('save', async function (next) {
                         'res.partner',
                         'create',
                         [{
-                            // changement
-                        //     firstname: client.prenom,
-                        // lastname: client.nom,
-                            name: `Client : ${client.prenom} ${client.nom}`,
-                            //name: client.nom,
+
+                            name: client.prenom + ' ' + client.nom,
                             email: client.email,
                             phone: client.telephone,
                         }]

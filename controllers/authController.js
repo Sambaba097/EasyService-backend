@@ -307,11 +307,14 @@ exports.updateUserProfile = async (req, res) => {
     });
   }
 };
+
+const Avis = require("../models/Avis");
 // Changement de rôle spécial
 exports.changeUserRole = async (req, res) => {
   try {
     const { id } = req.params;
     const { newRole } = req.body;
+    console.log(req.body);
 
     // Validation
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -327,8 +330,10 @@ exports.changeUserRole = async (req, res) => {
     const { prenom, nom, email, image } = existingUser;
 
     // 2. Supprimer les dépendances
-    await Demande.deleteMany({ utilisateur: id });
-    await Avis.deleteMany({ utilisateur: id });
+    if(Demande.find({ utilisateur: id }).length > 0 || Avis.find({ utilisateur: id }).length > 0) {
+      await Demande.deleteMany({ utilisateur: id });
+      await Avis.deleteMany({ utilisateur: id });
+    }
 
     // 3. Supprimer l'ancien utilisateur
     await User.findByIdAndDelete(id);
@@ -372,12 +377,27 @@ exports.changeUserRole = async (req, res) => {
 };
 
 
-// Fonction pour ajouter un attribut "bloque" à tous les utilisateurs
+// Fonction pour ajouter un attribut "odooId" à tous les utilisateurs
 // const addAttributeToAllUsers = async () => {
 //   try {
 //     const result = await User.updateMany(
 //       { odooId: { $exists: false } }, // s'assure qu'on ne modifie pas ceux qui l'ont déjà
-//       { $set: { bloque: false } }        // ou une autre valeur par défaut
+//       { $set: { odooId: false } }        // ou une autre valeur par défaut
+//     );
+//     console.log(${result.modifiedCount} utilisateurs mis à jour.);
+//   } catch (err) {
+//     console.error("Erreur de mise à jour :", err);
+//   }
+// };
+
+// addAttributeToAllUsers();
+
+// Fonction pour supprimer un attribut "odooId" à tous les utilisateurs
+// const addAttributeToAllUsers = async () => {
+//   try {
+//     const result = await User.updateMany(
+//       { odooId: { $exists: true } }, // s'assure qu'on ne modifie pas ceux qui l'ont déjà
+//       { $unset: { odooId: "" } }        // ou une autre valeur par défaut
 //     );
 //     console.log(`${result.modifiedCount} utilisateurs mis à jour.`);
 //   } catch (err) {
@@ -532,6 +552,7 @@ exports.unblockUser = async (req, res) => {
 
 
 const transporter = require('../config/email');
+const Demande = require("../models/Demande");
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -555,7 +576,7 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
 
     // 4. Envoyer l'email
-    const resetUrl = `https://easyservice-29e5.onrender.com/?newPassToken=${resetToken}`;
+    const resetUrl = `https://easyservice-zhmc.onrender.com/?newPassToken=${resetToken}`;
 
     await transporter.sendMail({
       from: '"EASY SERVICE" <baelhadjisamba40@gmail.com>',
@@ -573,7 +594,7 @@ exports.forgotPassword = async (req, res) => {
 
           <p>Ce message a été envoyé automatiquement, ne répondez pas.</p>
           <p>Merci,</p>
-          <p>L'équipe <a href="https://easyservice-29e5.onrender.com" style="font-weight:bold; color:#f97316;">EASY SERVICE</a></p>
+          <p>L'équipe <a href="https://easyservice-zhmc.onrender.com" style="font-weight:bold; color:#f97316;">EASY SERVICE</a></p>
           <img src="https://res.cloudinary.com/ds5zfxlhf/image/upload/v1745237611/Logo-EasyService.png" alt="Logo" style="margin-top: 10px;" />
           
         </div>
