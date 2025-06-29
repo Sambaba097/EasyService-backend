@@ -4,7 +4,6 @@ const User = require('./User');
 
 
 const technicienSchema = new mongoose.Schema({
-    telephone: { type: String, required: true },
     metier: { type: String, required: true },
     categorie: { 
       type: mongoose.Schema.Types.ObjectId, 

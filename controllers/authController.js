@@ -21,8 +21,11 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "Cet email est déjà utilisé." });
     }
 
+    // Hachage du mot de passe
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Créer un nouvel utilisateur
-    const user = new User({ nom, prenom, email, password, role });
+    const user = new User({ nom, prenom, email, password: hashedPassword, role });
     await user.save();
 
     // 👉 Appel à Odoo pour créer un contact
@@ -126,6 +129,100 @@ exports.login = async (req, res) => {
   }
 };
 
+// Connexion avec Google
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+exports.googleLogin = async (req, res) => {
+  const { token } = req.body;
+
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { sub, email, name, picture } = payload;
+
+    // Chercher l'utilisateur dans la base
+    let user = await User.findOne({ email });
+
+    // Si l'utilisateur existe mais n'a pas de googleId
+    if (user && !user.googleId) {
+      return res.status(400).json({ 
+        message: "Vous avez déjà un compte, entrez votre mot de passe pour vous connecter" 
+      });
+    }
+
+    // Vérifier si l'utilisateur est bloqué
+    if (user && user.bloque) {
+      return res.status(403).json({ 
+        message: "Votre compte a été bloqué. Contactez l'administrateur." 
+      });
+    }
+
+    // Si l'utilisateur n'existe pas, le créer
+    if (!user) {
+      // Attendre que le mot de passe soit haché avant de créer l'utilisateur
+      const hashedPassword = await bcrypt.hash(process.env.DEFAULT_PASSWORD, 10);
+      
+      user = await User.create({
+        nom: name.split(' ')[1] || name, // Fallback si pas de nom de famille
+        prenom: name.split(' ')[0] || name,
+        email,
+        image: { url: picture },
+        role: "client",
+        password: hashedPassword,
+        googleId: sub,
+      });
+
+      // 👉 Appel à Odoo pour créer un contact
+      try {
+        const odooId = await createOdooContact(user);
+        user.odooId = odooId;
+        await user.save();
+      } catch (odooError) {
+        console.error('Erreur création contact Odoo:', odooError);
+      }
+    }
+
+    // Générer le token JWT
+    const tokenJwt = jwt.sign(
+      { 
+        userId: user._id, 
+        role: user.role, 
+        email: user.email, 
+        prenom: user.prenom, 
+        nom: user.nom 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    // Réponse réussie
+    res.status(200).json({
+      message: "Connexion réussie!",
+      tokenJwt,
+      user: {
+        id: user._id,
+        email: user.email,
+        prenom: user.prenom,
+        nom: user.nom,
+        role: user.role,
+      },
+    });
+
+  } catch (err) {
+    console.error('Erreur Google Login:', err);
+    res.status(401).json({ 
+      message: 'Échec de l\'authentification Google',
+      error: err.message 
+    });
+  }
+};
+
+
 // Récupérer tous les utilisateurs
 exports.getAllUsers = async (req, res) => {
   try {
@@ -145,6 +242,7 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
+// Récupérer un utilisateur par son ID
 exports.getUser = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -167,6 +265,7 @@ exports.getUser = async (req, res) => {
   }
 };
 
+// Récupérer l'utilisateur connecté
 exports.getCurrentUser = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
@@ -185,101 +284,56 @@ exports.getCurrentUser = async (req, res) => {
   }
 };
 
-
-
-// const Demande = require("../models/Demande");
-// const Avis = require("../models/Avis");
-
-// exports.updateUser = async (req, res) => {
-//   console.log(req.body);
-//   try {
-//     const { id } = req.params;
-//     const updateData = { ...req.body };
-
-//     if (!mongoose.Types.ObjectId.isValid(id)) {
-//       return res.status(400).json({ message: "ID utilisateur invalide" });
-//     }
-
-//     const existingUser = await User.findById(id);
-//     if (!existingUser) {
-//       return res.status(404).json({ message: "Utilisateur non trouvé" });
-//     }
-
-//     const roleChanged = existingUser.role !== updateData.role;
-
-//     if (roleChanged && updateData !== "" && updateData.role !== "" && updateData !== null) {
-//       const { prenom, nom, email, image } = existingUser;
-
-//       // 1. Supprimer les demandes et avis liés à l'utilisateur
-//       await Demande.deleteMany({ utilisateur: existingUser._id });
-//       await Avis.deleteMany({ utilisateur: existingUser._id });
-
-//       // 2. Supprimer l'utilisateur
-//       await User.findByIdAndDelete(id);
-
-//       // 3. Créer un nouvel utilisateur avec les nouvelles infos
-//       const newUser = new User({
-//         ...updateData,
-//         prenom,
-//         nom,
-//         email,
-//         password: "passer",
-//         image
-//       });
-
-//       await newUser.save();
-
-//       // 4. Créer un nouveau contact Odoo
-//       const odooId = await createOdooContact(newUser);
-//       newUser.odooId = odooId;
-//       await newUser.save();
-
-//       return res.status(200).json({
-//         message: "Rôle modifié. Nouvel utilisateur créé avec contact Odoo.",
-//         user: {
-//           _id: newUser._id,
-//           email: newUser.email,
-//           role: newUser.role,
-//           prenom: newUser.prenom,
-//           nom: newUser.nom,
-//           odooId: newUser.odooId,
-//         }
-//       });
-//     }
-
-//     // Mise à jour classique si pas de changement de rôle
-//     const updatedUser = await User.findByIdAndUpdate(id, updateData, {
-//       new: true,
-//       runValidators: true,
-//     });
-
-//     res.status(200).json({
-//       message: "Utilisateur mis à jour avec succès",
-//       user: updatedUser.select("-password")
-//     });
-
-//   } catch (err) {
-//     console.error("Erreur updateUser:", err);
-//     res.status(500).json({
-//       message: "Erreur lors de la mise à jour",
-//       error: err.message
-//     });
-//   }
-// };
-
-// Mise à jour normale du profil
-const multer = require('multer');
-const upload = multer({ limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB max
-
+// Mettre à jour le profil de l'utilisateur
 exports.updateUserProfile = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body; // Pour les champs texte
     const file = req.file; // Pour le fichier image
 
+    // Vérifier si l'ID de l'utilisateur est valide
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "ID utilisateur invalide" });
     }
+
+    // Vérifier si l'utilisateur existe
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(400).json({ message: "Utilisateur non trouvé" });
+    }
+
+    // Vérifier si l'utilisateur est bloqué
+    if (user.bloque) {
+      return res.status(403).json({ 
+        message: "Votre compte a été bloquet. Contactez l'administrateur." 
+      });
+    }
+
+    // Vérifier si le nouvel email est identique au vieux email ou un autre email deja utilisé
+    if(req.body.email !== user.email) {
+      const emailExists = await findUserByEmail(req.body.email);
+      if (emailExists) {
+        return res.status(400).json({ message: "Cet email est deja utilisé" });
+      }
+    }
+
+    if (req.body.password?.trim() && req.body.newPassword?.trim()) {
+      // Vérifier si le mot de passe actuel est identique au nouveau
+      if (req.body.password === req.body.newPassword) {
+        return res.status(400).json({ message: "Mots de passe identiques" });
+      }
+
+      // Vérifier si le mot de passe actuel est correct
+      const isPasswordValid = await bcrypt.compare(req.body.password, user.password);
+      if (!isPasswordValid) {
+        return res.status(400).json({ message: "Mot de passe actuel incorrect" });
+      }
+
+      // Hacher le nouveau mot de passe
+      const hashedPassword = await bcrypt.hash(req.body.newPassword, 10);
+      updateData.password = hashedPassword;
+    }
+
 
     // Si un fichier image est envoyé
     if (file) {
@@ -288,16 +342,11 @@ exports.updateUserProfile = async (req, res) => {
       updateData.image = { url: imageUrl };
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('-password');
+    // Mise à jour de l'utilisateur
+    const updatedUser = await User.findByIdAndUpdate(id, updateData, 
+      { new: true, runValidators: true }).select('-password');
 
-    res.status(200).json({
-      message: "Profil mis à jour",
-      user: updatedUser
-    });
+    res.status(200).json({ message: "Profil mis à jour", user: updatedUser });
 
   } catch (err) {
     console.error("Erreur updateUserProfile:", err);
@@ -309,7 +358,7 @@ exports.updateUserProfile = async (req, res) => {
 };
 
 const Avis = require("../models/Avis");
-// Changement de rôle spécial
+// Changement de rôle
 exports.changeUserRole = async (req, res) => {
   try {
     const { id } = req.params;
@@ -376,116 +425,6 @@ exports.changeUserRole = async (req, res) => {
   }
 };
 
-
-// Fonction pour ajouter un attribut "odooId" à tous les utilisateurs
-// const addAttributeToAllUsers = async () => {
-//   try {
-//     const result = await User.updateMany(
-//       { odooId: { $exists: false } }, // s'assure qu'on ne modifie pas ceux qui l'ont déjà
-//       { $set: { odooId: false } }        // ou une autre valeur par défaut
-//     );
-//     console.log(${result.modifiedCount} utilisateurs mis à jour.);
-//   } catch (err) {
-//     console.error("Erreur de mise à jour :", err);
-//   }
-// };
-
-// addAttributeToAllUsers();
-
-// Fonction pour supprimer un attribut "odooId" à tous les utilisateurs
-// const addAttributeToAllUsers = async () => {
-//   try {
-//     const result = await User.updateMany(
-//       { odooId: { $exists: true } }, // s'assure qu'on ne modifie pas ceux qui l'ont déjà
-//       { $unset: { odooId: "" } }        // ou une autre valeur par défaut
-//     );
-//     console.log(`${result.modifiedCount} utilisateurs mis à jour.`);
-//   } catch (err) {
-//     console.error("Erreur de mise à jour :", err);
-//   }
-// };
-
-// addAttributeToAllUsers();
-
-
-// Mettre à jours tous les odooId des Users
-// const updateOdooIdsForAllUsers = async () => {
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
-  
-//   try {
-//     const usersWithoutOdooId = await User.find(
-//       { odooId: { $exists: false } },
-//       null,
-//       { session }
-//     );
-
-//     console.log(`Found ${usersWithoutOdooId.length} users without odooId`);
-
-//     let successCount = 0;
-//     let failCount = 0;
-//     const failedEmails = [];
-
-//     for (const user of usersWithoutOdooId) {
-//       try {
-//         const odooData = {
-//           prenom: user.prenom,
-//           nom: user.nom,
-//           email: user.email,
-//           role: user.role
-//         };
-
-//         // MODIFICATION CLÉ : Adaptation à la réponse réelle d'Odoo
-//         const odooId = await createOdooContact(odooData);
-        
-//         if (odooId) { // Vérification simplifiée
-//           await User.updateOne(
-//             { _id: user._id },
-//             { $set: { odooId: odooId } }, // Directement utiliser l'ID retourné
-//             { session }
-//           );
-//           successCount++;
-//           console.log(`Successfully updated ${user.email} with odooId: ${odooId}`);
-//         } else {
-//           throw new Error('Empty Odoo ID received');
-//         }
-//       } catch (err) {
-//         failCount++;
-//         failedEmails.push(user.email);
-//         console.error(`Failed to update ${user.email}:`, err.message);
-//       }
-//     }
-
-//     await session.commitTransaction();
-    
-//     console.log(`
-//       Process completed:
-//       - Success: ${successCount}
-//       - Failed: ${failCount}
-//       ${failCount > 0 ? `- Failed emails: ${failedEmails.join(', ')}` : ''}
-//     `);
-
-//     return {
-//       total: usersWithoutOdooId.length,
-//       success: successCount,
-//       failed: failCount,
-//       failedEmails
-//     };
-
-//   } catch (err) {
-//     await session.abortTransaction();
-//     console.error("Transaction aborted:", err);
-//     throw err;
-//   } finally {
-//     session.endSession();
-//   }
-// };
-
-// // Pour exécuter la fonction
-// updateOdooIdsForAllUsers()
-//   .then(result => console.log('Final result:', result))
-//   .catch(err => console.error('Global error:', err));
-
 // Bloquer un utilisateur
 exports.blockUser = async (req, res) => {
   try {
@@ -550,12 +489,15 @@ exports.unblockUser = async (req, res) => {
   }
 };
 
-
 const transporter = require('../config/email');
 const Demande = require("../models/Demande");
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Veuillez fournir une adresse email." });
+    }
 
     // 1. Vérifier si l'utilisateur existe
     const user = await User.findOne({ email });
@@ -576,7 +518,7 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
 
     // 4. Envoyer l'email
-    const resetUrl = `https://easyservice-zhmc.onrender.com/?newPassToken=${resetToken}`;
+    const resetUrl = `http://easyservice.vercel.app/?newPassToken=${resetToken}`;
 
     await transporter.sendMail({
       from: '"EASY SERVICE" <baelhadjisamba40@gmail.com>',
@@ -594,7 +536,7 @@ exports.forgotPassword = async (req, res) => {
 
           <p>Ce message a été envoyé automatiquement, ne répondez pas.</p>
           <p>Merci,</p>
-          <p>L'équipe <a href="https://easyservice-zhmc.onrender.com" style="font-weight:bold; color:#f97316;">EASY SERVICE</a></p>
+          <p>L'équipe <a href="https://easyservice.vercel.app" style="font-weight:bold; color:#f97316;">EASY SERVICE</a></p>
           <img src="https://res.cloudinary.com/ds5zfxlhf/image/upload/v1745237611/Logo-EasyService.png" alt="Logo" style="margin-top: 10px;" />
           
         </div>
@@ -628,10 +570,11 @@ exports.resetPassword = async (req, res) => {
     }
 
     // 3. Mettre à jour le mot de passe
-    user.password = newPassword;
+    user.password = await bcrypt.hash(newPassword, 10);
     user.resetPasswordToken = undefined;  // Invalider le token
     user.resetPasswordExpires = undefined;
     await user.save();
+    console.log(user);
 
     res.status(200).json({ message: "Mot de passe mis à jour avec succès." });
   } catch (error) {

@@ -34,6 +34,12 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true })); 
+// Configurer les en-tetes CORS pour les fentre popups
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  next();
+});
 
 // Connexion à MongoDB
 const MONGO_URI = process.env.MONGO_URI 

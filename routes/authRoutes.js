@@ -9,6 +9,7 @@ const { uploadProfile } = require("../config/multer");
 // Routes pour l'authentification
 router.post('/register', authController.register);
 router.post('/login', authController.login);
+router.post('/login/google', authController.googleLogin);
 
 // Routes pour crée des techniciens
 router.post('/creer/technicien', technicienController.createTechnicien);
